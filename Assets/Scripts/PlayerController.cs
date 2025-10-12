@@ -22,6 +22,7 @@ public class PlayerController : MonoBehaviour
             // When clicked spawn a projectile at the player's position with no rotation.
             Instantiate(projectilePrefab, transform.position, Quaternion.identity);
 
+            // Reduce the player's size by 5%
             transform.localScale *= 0.95f;
 
         }
