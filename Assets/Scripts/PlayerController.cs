@@ -9,6 +9,7 @@ public class PlayerController : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        // Get the Rigidbody component
         rb = GetComponent<Rigidbody>();
     }
 
@@ -18,8 +19,10 @@ public class PlayerController : MonoBehaviour
         // Move the player based on input
         if (Input.GetMouseButtonDown(0))
         {
-            // Shoot a projectile
+            // When clicked spawn a projectile at the player's position with no rotation.
             Instantiate(projectilePrefab, transform.position, Quaternion.identity);
+
+            transform.localScale *= 0.95f;
 
         }
     }
