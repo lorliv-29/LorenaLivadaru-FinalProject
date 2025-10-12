@@ -35,6 +35,9 @@ public class PlayerController : MonoBehaviour
 
         }
 
+
+
+
         // Update the LineRenderer to point from the player to the mouse position
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
@@ -55,7 +58,14 @@ public class PlayerController : MonoBehaviour
             lindeRenderer.SetPosition(1, transform.position);
 
         }
+
     }
+
+
+
+
+
+
 
     void FixedUpdate()
     {
