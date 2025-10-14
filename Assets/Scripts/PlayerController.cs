@@ -1,92 +1,135 @@
 using UnityEngine;
-
 public class PlayerController : MonoBehaviour
+
 {
-    private Rigidbody rb;
+    // ------------------ Core References ------------------
 
-    public GameObject projectilePrefab;
-    public float speed = 10f;
+    private Rigidbody rb;                  // Player's Rigidbody for movement and recoil
+    private Camera mainCamera;             // Main camera used for mouse aiming
+    private LineRenderer lineRenderer;     // Draws aiming line from player to mouse
 
-    private LineRenderer lindeRenderer;
+    // ------------------ Variables ------------------------
 
+    public GameObject projectilePrefab;    // Prefab to instantiate as a projectile
+    public float projectileForce = 4f;     // Reduced force for better control
+    public float recoilForce = 2f;         // Lowered recoil for smoother gameplay
+    public float speed = 10f;              // Player movement speed using WASD
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    private Vector3 shootDirection;        // Shared direction used for both aiming and shooting
+
+    // ------------------ Initialization -------------------
+
     void Start()
     {
-        // Get the Rigidbody component
         rb = GetComponent<Rigidbody>();
+        mainCamera = Camera.main;
 
-        // Get the LineRenderer component
-        lindeRenderer = GetComponent<LineRenderer>();
-        lindeRenderer.positionCount = 2;
+        lineRenderer = GetComponent<LineRenderer>();
+        lineRenderer.positionCount = 2; // Only need two points for a straight line
     }
 
-    // Update is called once per frame
+    // ------------------ Per-Frame Updates ------------------
+
     void Update()
     {
+
         // Move the player based on input
         if (Input.GetMouseButtonDown(0))
         {
             // When clicked spawn a projectile at the player's position with no rotation.
-            Instantiate(projectilePrefab, transform.position, Quaternion.identity);
-
-            // Reduce the player's size by 5%
-            transform.localScale *= 0.95f;
-
+            Shoot(shootDirection);
         }
 
+        // Calculate direction from player to mouse once per frame
+        shootDirection = GetMouseDirection();
 
-
-
-        // Update the LineRenderer to point from the player to the mouse position
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-        // Create a plane at y=0 to represent the ground
-        Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
-
-        // Checks where the ray hits the plane
-        if (groundPlane.Raycast(ray, out float enter))
-        {
-            Vector3 hitPoint = ray.GetPoint(enter);
-            lindeRenderer.SetPosition(0, transform.position);
-            lindeRenderer.SetPosition(1, hitPoint);
-        }
-        // If the ray doesn't hit the plane, set the line to zero length
-        else
-        {
-            lindeRenderer.SetPosition(0, transform.position);
-            lindeRenderer.SetPosition(1, transform.position);
-
-        }
-
+        // Update aim line in real-time
+        UpdateLineRenderer(shootDirection);
     }
 
+    // ------------------ Mouse Aiming Logic ------------------
 
+    Vector3 GetMouseDirection()
+    {
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
+        if (Physics.Raycast(ray, out RaycastHit hit))
+        {
+            Vector3 target = hit.point;
 
+            // Flatten both target and player to same height
+            target.y = transform.position.y;
 
+            Vector3 dir = target - transform.position;
 
+            // If direction is nearly zero, default to forward
+            if (dir.magnitude < 0.1f)
+            {
+                return transform.forward;
+            }
+
+            return dir.normalized;
+        }
+
+        return transform.forward; // fallback
+    }
+
+    // ------------------ Visual Aim Line ----------------------
+
+    void UpdateLineRenderer(Vector3 dir)
+    {
+        lineRenderer.SetPosition(0, transform.position);
+        lineRenderer.SetPosition(1, transform.position + dir * 5f); // Line points ahead
+    }
+
+    // ------------------ Shooting and Recoil ------------------
+
+    void Shoot(Vector3 dir)
+    {
+        // Visual debug line for shooting direction
+        Debug.DrawRay(transform.position, dir * 5f, Color.red, 2f);
+
+        // Flatten the shoot direction
+        dir.y = 0;
+
+        // Slightly offset spawn upward to prevent clipping
+        Vector3 spawnPos = transform.position + Vector3.up * 0.2f;
+
+        GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+        Rigidbody projRb = projectile.GetComponent<Rigidbody>();
+
+        if (projRb != null)
+        {
+            projRb.AddForce(dir.normalized * projectileForce, ForceMode.Impulse);
+            Destroy(projectile, 2f);
+        }
+
+        rb.AddForce(-dir.normalized * recoilForce, ForceMode.Impulse);
+        transform.localScale *= 0.95f;
+    }
+
+    // ------------------ WASD Movement ------------------------
 
     void FixedUpdate()
     {
-        // Get input axes
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
-        // Create a movement vector
+
         Vector3 movement = new Vector3(moveHorizontal, 0.0f, moveVertical);
-        // Apply the movement to the Rigidbody
         rb.AddForce(movement * speed);
     }
+
+    // ------------------ Pickup Collision -----------------------
+    
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.CompareTag("Pickup"))
         {
             // Increase the player's size by 10%
             transform.localScale *= 1.1f;
-            // Destroy the power-up object
+
+            // Remove the pickup from the scene
             Destroy(other.gameObject);
         }
     }
-
 }
-
