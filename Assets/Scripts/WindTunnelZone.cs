@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class WindTunnelZone : MonoBehaviour
 {
-    public Vector3 windDirection = Vector3.up; // Direction of the wind
+    public Vector3 windDirection = Vector3.right; // Direction of the wind
     public float windStrength = 10f; // Strength of the wind
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -17,18 +17,21 @@ public class WindTunnelZone : MonoBehaviour
         
     }
 
+    //run while player is in the trigger
     private void OnTriggerStay(Collider other)
     {
         if (other.CompareTag("Player"))
         {
+            // Get the Rigidbody component of the player
             Rigidbody rb = other.GetComponent<Rigidbody>();
+           
             if (rb != null)
             {
                 // Zero Y to keep force flat if needed
                 Vector3 flatDirection = new Vector3(windDirection.x, 0, windDirection.z).normalized;
 
                 // Apply wind force to the player
-                rb.AddForce(windDirection.normalized * windStrength, ForceMode.Acceleration);
+                rb.AddForce(flatDirection * windStrength, ForceMode.Acceleration);
             }
         }
     }

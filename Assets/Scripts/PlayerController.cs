@@ -33,7 +33,7 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
 
-        // Move the player based on input
+        //check for mouse click
         if (Input.GetMouseButtonDown(0))
         {
             // When clicked spawn a projectile at the player's position with no rotation.
@@ -51,8 +51,10 @@ public class PlayerController : MonoBehaviour
 
     Vector3 GetMouseDirection()
     {
+        //cast a ray from mouse position
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
 
+        //check if ray hits something
         if (Physics.Raycast(ray, out RaycastHit hit))
         {
             Vector3 target = hit.point;
@@ -78,8 +80,11 @@ public class PlayerController : MonoBehaviour
 
     void UpdateLineRenderer(Vector3 dir)
     {
+        //Start the line at the player's current position
         lineRenderer.SetPosition(0, transform.position);
-        lineRenderer.SetPosition(1, transform.position + dir * 5f); // Line points ahead
+
+        //End the line 3 units in the shoot direction
+        lineRenderer.SetPosition(1, transform.position + dir * 3f);
     }
 
     // ------------------ Shooting and Recoil ------------------
@@ -96,15 +101,20 @@ public class PlayerController : MonoBehaviour
         Vector3 spawnPos = transform.position + Vector3.up * 0.2f;
 
         GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+
         Rigidbody projRb = projectile.GetComponent<Rigidbody>();
 
+        // Apply projectile force 
         if (projRb != null)
         {
             projRb.AddForce(dir.normalized * projectileForce, ForceMode.Impulse);
             Destroy(projectile, 2f);
         }
 
+        // Apply recoil in opposite direction
         rb.AddForce(-dir.normalized * recoilForce, ForceMode.Impulse);
+
+        //Reduce player size by 5% on each shot
         transform.localScale *= 0.95f;
     }
 
