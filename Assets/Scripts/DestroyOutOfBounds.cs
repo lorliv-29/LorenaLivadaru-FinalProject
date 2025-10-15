@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class DestroyOutOfBounds : MonoBehaviour
 {
-    private float maxDistance = 20.0f;
+    private float maxDistance = 100f;
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -24,5 +24,8 @@ public class DestroyOutOfBounds : MonoBehaviour
         {
             Destroy(gameObject);
         }
+
+        Debug.Log("Projectile destroyed at: " + transform.position);
+
     }
 }

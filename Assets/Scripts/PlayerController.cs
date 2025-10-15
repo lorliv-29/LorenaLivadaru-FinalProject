@@ -8,8 +8,13 @@ public class PlayerController : MonoBehaviour
     private Camera mainCamera;             // Main camera used for mouse aiming
     //private LineRenderer lineRenderer;     // Draws aiming line from player to mouse
 
+    // Pivot point for aiming (assign in Inspector) 
     [SerializeField]
-    private Transform aimPivot;   
+    private Transform aimPivot;
+
+    // Point from which projectiles are spawned
+    [SerializeField] 
+    private Transform projectileSpawnPoint;
 
     // ------------------ Variables ------------------------
 
@@ -71,15 +76,13 @@ public class PlayerController : MonoBehaviour
             Vector3 target = hit.point;
 
             // Flatten both target and player to same height
-            target.y = transform.position.y;
+            target.y = aimPivot.position.y;
 
-            // Direction from player to mouse hit point
-            Vector3 dir = target - transform.position;
-
-       
+            // Direction from HINGE to mouse
+            Vector3 dir = target - aimPivot.position;
 
             // If direction is nearly zero, default to forward
-            if (dir.magnitude < 0.1f)
+            if (dir.sqrMagnitude < 0.1f)
             {
                 return aimPivot.forward;
             }
@@ -109,11 +112,8 @@ public class PlayerController : MonoBehaviour
             // Get rotation that faces the direction
             Quaternion targetRotation = Quaternion.LookRotation(dir);
 
-            // Extract just the Y-axis angle
-            float angleY = targetRotation.eulerAngles.y;
-
-            // Apply it to aimPivot as local Y rotation
-            aimPivot.localEulerAngles = new Vector3(0f, angleY, 0f);
+            // Only rotate around Y axis for horizontal aiming
+            aimPivot.rotation = Quaternion.Euler(0f, targetRotation.eulerAngles.y, 0f); // Y only
         }
     }
 
@@ -125,8 +125,10 @@ public class PlayerController : MonoBehaviour
         dir.y = 0;
 
         dir = dir.normalized;
-        // Slightly offset projectile
-        Vector3 spawnPos = aimPivot.position + aimPivot.forward * 0.5f;
+
+        // Determine spawn position at the projectile spawn point
+        Vector3 spawnPos = projectileSpawnPoint.position;
+
         spawnPos.y = 0f; // Force Y to 0
 
         // Instantiate the projectile
@@ -140,14 +142,17 @@ public class PlayerController : MonoBehaviour
         {
             projRb.useGravity = false; //  keep it flat
             projRb.AddForce(dir * projectileForce, ForceMode.Impulse);
-            //Destroy(projectile, 2f); // Auto-destroy after 2 seconds
+            Destroy(projectile, 2f); // Auto-destroy after 2 seconds
         }
 
         // Apply recoil to the player in the opposite direction
         rb.AddForce(-dir * recoilForce, ForceMode.Impulse);
 
-        //Reduce player size by 5% on each shot
-        //transform.localScale *= 0.95f;
+        // Visual debug ray to show shooting direction
+        Debug.DrawRay(spawnPos, dir * 2f, Color.red, 3f);
+
+        //Reduce player size by 2% on each shot
+        transform.localScale *= 0.98f;
     }
 
     // ------------------ WASD Movement ------------------------
