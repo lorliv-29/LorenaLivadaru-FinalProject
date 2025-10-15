@@ -6,7 +6,10 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody rb;                  // Player's Rigidbody for movement and recoil
     private Camera mainCamera;             // Main camera used for mouse aiming
-    private LineRenderer lineRenderer;     // Draws aiming line from player to mouse
+    //private LineRenderer lineRenderer;     // Draws aiming line from player to mouse
+
+    [SerializeField]
+    private Transform aimPivot;   
 
     // ------------------ Variables ------------------------
 
@@ -24,8 +27,14 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
 
-        lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.positionCount = 2; // Only need two points for a straight line
+        // Ensure aimPivot is assigned in the Inspector
+        if (aimPivot == null)
+        {
+            Debug.LogError("AimPivot is not assigned in the Inspector.");
+        }
+
+        //lineRenderer = GetComponent<LineRenderer>();
+        //lineRenderer.positionCount = 2; // Only need two points for a straight line
     }
 
     // ------------------ Per-Frame Updates ------------------
@@ -33,18 +42,20 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
 
-        //check for mouse click
+        // 1. Get direction from player to mouse
+        shootDirection = GetMouseDirection();
+
+        // 2. Rotate the aim pivot to face the mouse
+        UpdateAimingRotation(shootDirection);
+
+        // 3. If left mouse button is clicked, shoot
         if (Input.GetMouseButtonDown(0))
         {
-            // When clicked spawn a projectile at the player's position with no rotation.
             Shoot(shootDirection);
         }
 
-        // Calculate direction from player to mouse once per frame
-        shootDirection = GetMouseDirection();
-
         // Update aim line in real-time
-        UpdateLineRenderer(shootDirection);
+        //UpdateLineRenderer(shootDirection);
     }
 
     // ------------------ Mouse Aiming Logic ------------------
@@ -62,63 +73,78 @@ public class PlayerController : MonoBehaviour
             // Flatten both target and player to same height
             target.y = transform.position.y;
 
+            // Direction from player to mouse hit point
             Vector3 dir = target - transform.position;
 
-            float targetRotationY = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
-
-            transform.eulerAngles = new Vector3(transform.eulerAngles.x,
-                                                    targetRotationY,
-                                                    transform.eulerAngles.z);
+       
 
             // If direction is nearly zero, default to forward
             if (dir.magnitude < 0.1f)
             {
-                return transform.forward;
+                return aimPivot.forward;
             }
 
             return dir.normalized;
         }
-
-        return transform.forward; // fallback
+        
+        return aimPivot.forward; // Fallback: forward direction if ray doesn't hit anything
     }
 
     // ------------------ Visual Aim Line ----------------------
 
-    void UpdateLineRenderer(Vector3 dir)
-    {
-        //Start the line at the player's current position
-        lineRenderer.SetPosition(0, transform.position);
+    //void UpdateLineRenderer(Vector3 dir)
+    // {
+    //Start the line at the player's current position
+    //lineRenderer.SetPosition(0, transform.position);
 
-        //End the line 3 units in the shoot direction
-        lineRenderer.SetPosition(1, transform.position + dir * 3f);
+    //End the line 3 units in the shoot direction
+    //lineRenderer.SetPosition(1, transform.position + dir * 3f);
+    // }
+
+
+    void UpdateAimingRotation(Vector3 dir)
+    {
+        if (dir.sqrMagnitude > 0.001f)
+        {
+            // Get rotation that faces the direction
+            Quaternion targetRotation = Quaternion.LookRotation(dir);
+
+            // Extract just the Y-axis angle
+            float angleY = targetRotation.eulerAngles.y;
+
+            // Apply it to aimPivot as local Y rotation
+            aimPivot.localEulerAngles = new Vector3(0f, angleY, 0f);
+        }
     }
 
     // ------------------ Shooting and Recoil ------------------
 
     void Shoot(Vector3 dir)
     {
-        // Visual debug line for shooting direction
-        Debug.DrawRay(transform.position, dir * 5f, Color.red, 2f);
-
-        // Flatten the shoot direction
+        // Make sure direction is horizontal
         dir.y = 0;
 
-        // Slightly offset spawn upward to prevent clipping
-        Vector3 spawnPos = transform.position + Vector3.up * 0.2f;
+        dir = dir.normalized;
+        // Slightly offset projectile
+        Vector3 spawnPos = aimPivot.position + aimPivot.forward * 0.5f;
+        spawnPos.y = 0f; // Force Y to 0
 
-        GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+        // Instantiate the projectile
+        GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(dir));
 
-        Rigidbody projRb = projectile.GetComponent<Rigidbody>();
+        Debug.Log("Projectile instantiated at: " + spawnPos);
 
-        // Apply projectile force 
+           // Apply force to the projectile
+            Rigidbody projRb = projectile.GetComponent<Rigidbody>();
         if (projRb != null)
         {
-            projRb.AddForce(dir.normalized * projectileForce, ForceMode.Impulse);
-            Destroy(projectile, 2f);
+            projRb.useGravity = false; //  keep it flat
+            projRb.AddForce(dir * projectileForce, ForceMode.Impulse);
+            //Destroy(projectile, 2f); // Auto-destroy after 2 seconds
         }
 
-        // Apply recoil in opposite direction
-        rb.AddForce(-dir.normalized * recoilForce, ForceMode.Impulse);
+        // Apply recoil to the player in the opposite direction
+        rb.AddForce(-dir * recoilForce, ForceMode.Impulse);
 
         //Reduce player size by 5% on each shot
         //transform.localScale *= 0.95f;
@@ -134,9 +160,7 @@ public class PlayerController : MonoBehaviour
         Vector3 movement = new Vector3(moveHorizontal, 0.0f, moveVertical);
         rb.AddForce(movement * speed);
 
-        //Vector3 p = transform.position;
-       // p.y = 0f;
-        //transform.position = p;
+     
     }
 
     // ------------------ Pickup Collision -----------------------
