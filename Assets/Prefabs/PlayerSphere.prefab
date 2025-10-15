@@ -150,6 +150,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a970f887acf44e441a49fe6d641acdcd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  aimPivot: {fileID: 0}
+  projectileSpawnPoint: {fileID: 0}
   projectilePrefab: {fileID: 7566992092314363487, guid: 9056b09bb4136294692ddffc8157ed7d, type: 3}
   projectileForce: 10
   recoilForce: 7
@@ -178,7 +180,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10308, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: e823cd5b5d27c0f4b8256e7c12ee3e6d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
