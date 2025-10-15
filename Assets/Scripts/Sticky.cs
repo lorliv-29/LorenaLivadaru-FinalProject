@@ -11,7 +11,7 @@ public class Sticky : MonoBehaviour
             Rigidbody rb = other.GetComponent<Rigidbody>();
             
                 // Push in the wall's up direction
-                Vector3 pushDirection = transform.up;
+                Vector3 pushDirection = transform.right;
                 rb.AddForce(pushDirection * pushSpeed, ForceMode.Force);          
         }
     }
