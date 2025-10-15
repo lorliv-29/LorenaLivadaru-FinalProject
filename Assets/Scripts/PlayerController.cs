@@ -64,6 +64,12 @@ public class PlayerController : MonoBehaviour
 
             Vector3 dir = target - transform.position;
 
+            float targetRotationY = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
+
+            transform.eulerAngles = new Vector3(transform.eulerAngles.x,
+                                                    targetRotationY,
+                                                    transform.eulerAngles.z);
+
             // If direction is nearly zero, default to forward
             if (dir.magnitude < 0.1f)
             {
@@ -115,7 +121,7 @@ public class PlayerController : MonoBehaviour
         rb.AddForce(-dir.normalized * recoilForce, ForceMode.Impulse);
 
         //Reduce player size by 5% on each shot
-        transform.localScale *= 0.95f;
+        //transform.localScale *= 0.95f;
     }
 
     // ------------------ WASD Movement ------------------------
@@ -127,6 +133,10 @@ public class PlayerController : MonoBehaviour
 
         Vector3 movement = new Vector3(moveHorizontal, 0.0f, moveVertical);
         rb.AddForce(movement * speed);
+
+        //Vector3 p = transform.position;
+       // p.y = 0f;
+        //transform.position = p;
     }
 
     // ------------------ Pickup Collision -----------------------
