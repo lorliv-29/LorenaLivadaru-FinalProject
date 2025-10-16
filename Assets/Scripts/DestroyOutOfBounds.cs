@@ -25,7 +25,7 @@ public class DestroyOutOfBounds : MonoBehaviour
             Destroy(gameObject);
         }
 
-        Debug.Log("Projectile destroyed at: " + transform.position);
+       // Debug.Log("Projectile destroyed at: " + transform.position);
 
     }
 }

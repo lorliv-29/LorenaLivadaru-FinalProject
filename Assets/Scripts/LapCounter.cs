@@ -20,6 +20,8 @@ public class LapCounter : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        Debug.Log("Trigger Entered by: " + other.name);
+
         if (other.CompareTag("Player"))
         {
             if (gameManager != null)

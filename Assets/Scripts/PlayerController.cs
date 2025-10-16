@@ -22,7 +22,7 @@ public class PlayerController : MonoBehaviour
     public float projectileForce = 4f;     // Reduced force for better control
     public float recoilForce = 2f;         // Lowered recoil for smoother gameplay
     public float speed = 10f;              // Player movement speed using WASD
-    public float minMass = 0.1f;          // Minimum mass
+    public float minMass = 0.5f;          // Minimum mass
 
 
     private Vector3 shootDirection;        // Shared direction used for both aiming and shooting
@@ -64,7 +64,7 @@ public class PlayerController : MonoBehaviour
         }
 
         // ------------------GameOver------------------
-        if (rb.mass < minMass)
+        if (transform.localScale.x <= 0.5f && !gameManager.IsGameOver())
         {
             gameManager.GameOver(); // show UI, stop player
 
@@ -143,7 +143,7 @@ public class PlayerController : MonoBehaviour
         // Instantiate the projectile
         GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(dir));
 
-        Debug.Log("Projectile instantiated at: " + spawnPos);
+       // Debug.Log("Projectile instantiated at: " + spawnPos);
 
            // Apply force to the projectile
             Rigidbody projRb = projectile.GetComponent<Rigidbody>();
