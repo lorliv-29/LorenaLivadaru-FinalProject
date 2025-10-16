@@ -4,6 +4,7 @@ public class LapCounter : MonoBehaviour
 {
     public ObstacleMapManager mapManager; // Assign in the Inspector
     public GameManager gameManager; // Assign in the Inspector
+    public GameObject confettiPrefab; // Assign in the Inspector
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -33,6 +34,12 @@ public class LapCounter : MonoBehaviour
                 mapManager.SwitchToNextLayout(); // Switch to the next layout
             }
 
+        }
+
+        if (confettiPrefab != null)
+        {
+            Instantiate(confettiPrefab, other.transform.position, Quaternion.identity);
+            //Destroy(confettiPrefab, 2f); // destroy after 2 seconds
         }
     }
 }

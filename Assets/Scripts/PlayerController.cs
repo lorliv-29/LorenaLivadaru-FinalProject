@@ -7,6 +7,8 @@ public class PlayerController : MonoBehaviour
     private Rigidbody rb;                  // Player's Rigidbody for movement and recoil
     private Camera mainCamera;             // Main camera used for mouse aiming
     public GameManager gameManager;        // assign in Inspector
+    public GameObject pickupEffectPrefab;  // Assign in Inspector
+
 
     // Pivot point for aiming (assign in Inspector) 
     [SerializeField]
@@ -155,7 +157,17 @@ public class PlayerController : MonoBehaviour
         }
 
         // Apply recoil to the player in the opposite direction
-        rb.AddForce(-dir * recoilForce, ForceMode.Impulse);
+        //rb.AddForce(-dir * recoilForce, ForceMode.Impulse);
+
+        // ------------------ Scale based on size ------------------
+        // Scale factor based on player size (x-axis)
+        float sizeFactor = transform.localScale.x;
+        // Calculate dynamic recoil force
+        float scaledRecoil = recoilForce * sizeFactor;
+        // Apply recoil
+        rb.AddForce(-dir * scaledRecoil, ForceMode.Impulse);
+
+
 
         // Visual debug ray to show shooting direction
         Debug.DrawRay(spawnPos, dir * 2f, Color.red, 3f);
@@ -183,11 +195,19 @@ public class PlayerController : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Pickup"))
         {
+            // Play pickup effect at the pickup's position
+            Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
+
             // Increase the player's size by 10%
             transform.localScale *= 1.1f;
 
             // Remove the pickup from the scene
             Destroy(other.gameObject);
+        }
+        else if (other.gameObject.CompareTag("FireSpin"))
+        {
+            // Reduce the player's size by 30%
+            transform.localScale *= 0.7f;
         }
     }
 }
