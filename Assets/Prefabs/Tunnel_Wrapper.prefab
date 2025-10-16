@@ -273,9 +273,9 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8167926556765546426}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 16.894384, y: 2.9678419, z: 3.0632942}
+  m_LocalScale: {x: 18.3, y: 3.2147667, z: 3.3181608}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 7128484254351039821}
@@ -316,7 +316,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   windDirection: {x: 1, y: 0, z: 0}
-  windStrength: 20
+  windStrength: 40
 --- !u!1001 &5355491777705898456
 PrefabInstance:
   m_ObjectHideFlags: 0
