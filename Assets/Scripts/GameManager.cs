@@ -14,6 +14,8 @@ public class GameManager : MonoBehaviour
     public Transform leaderboardContentParent;      // VerticalLayoutGroup container
     public GameObject scoreEntryPrefab;             // TMP_Text prefab (deactivated by default)
     private string playerName;
+    public AudioSource backgroundMusic; // assign in Inspector
+
 
     private bool isGameStarted = false;
     private bool isGameOver = false;
@@ -40,6 +42,13 @@ public class GameManager : MonoBehaviour
         if (string.IsNullOrWhiteSpace(playerName))
         {
             playerName = "Anonymous";
+        }
+        // Start background music if assigned
+        if (backgroundMusic != null && !backgroundMusic.isPlaying)
+        {
+            backgroundMusic.Play();
+            Debug.Log("Background music started!");
+
         }
 
         Debug.Log("Game Started");
