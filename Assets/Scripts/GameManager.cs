@@ -11,6 +11,9 @@ public class GameManager : MonoBehaviour
     private bool isGameStarted = false;
     private bool isGameOver = false;
 
+    public int currentLap = 0;             // Current lap count
+    public Text lapText;                  // Reference to UI text that displays the lap coun
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -21,7 +24,9 @@ public class GameManager : MonoBehaviour
     {
         isGameStarted = true;
         startPanel.SetActive(false);
+        gameOverPanel.SetActive(false);
         gameUIPanel.SetActive(true);
+        Debug.Log("Game Started");
     }
 
     public void GameOver()
@@ -50,6 +55,21 @@ public class GameManager : MonoBehaviour
     void Update()
     {
 
+    }
+
+    public void OnLapCompleted()
+    {
+        currentLap++;
+
+        Debug.Log("Lap Completed! Total laps: " + currentLap);
+
+        if (lapText != null)
+            lapText.text = "Laps: " + currentLap;
+    }
+
+    public bool IsGameStarted()
+    {
+        return isGameStarted;
     }
 }
 

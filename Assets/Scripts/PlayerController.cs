@@ -48,6 +48,8 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        // 0. Stop all input processing if the game hasn't started
+        if (!gameManager || !gameManager.IsGameStarted()) return;
 
         // 1. Get direction from player to mouse
         shootDirection = GetMouseDirection();

@@ -2,9 +2,8 @@ using UnityEngine;
 
 public class LapCounter : MonoBehaviour
 {
-
-    public int currentLap = 0;
-    public ObstacleMapManager mapManager;
+    public ObstacleMapManager mapManager; // Assign in the Inspector
+    public GameManager gameManager; // Assign in the Inspector
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -23,10 +22,10 @@ public class LapCounter : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            currentLap++;
-
-            Debug.Log("Lap Completed! Current lap: " + currentLap);
-
+            if (gameManager != null)
+            {
+                gameManager.OnLapCompleted(); // Tell GameManager to count lap
+            }
             if (mapManager != null)
             {
                 mapManager.SwitchToNextLayout(); // Switch to the next layout
