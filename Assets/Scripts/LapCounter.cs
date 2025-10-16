@@ -4,6 +4,8 @@ public class LapCounter : MonoBehaviour
 {
 
     public int currentLap = 0;
+    public ObstacleMapManager mapManager;
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -24,6 +26,11 @@ public class LapCounter : MonoBehaviour
             currentLap++;
 
             Debug.Log("Lap Completed! Current lap: " + currentLap);
+
+            if (mapManager != null)
+            {
+                mapManager.SwitchToNextLayout(); // Switch to the next layout
+            }
 
         }
     }
