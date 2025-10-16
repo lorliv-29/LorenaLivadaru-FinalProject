@@ -9,6 +9,11 @@ public class GameManager : MonoBehaviour
     public GameObject startPanel;
     public GameObject gameOverPanel;
     public GameObject gameUIPanel;
+    public TMP_InputField nameInputField;
+    public GameObject leaderboardPanel;             // Assign in Inspector
+    public Transform leaderboardContentParent;      // VerticalLayoutGroup container
+    public GameObject scoreEntryPrefab;             // TMP_Text prefab (deactivated by default)
+    private string playerName;
 
     private bool isGameStarted = false;
     private bool isGameOver = false;
@@ -31,21 +36,63 @@ public class GameManager : MonoBehaviour
         gameOverPanel.SetActive(false); // Hide game over panel
         gameUIPanel.SetActive(true); // Show game UI panel
 
+        playerName = nameInputField.text;
+        if (string.IsNullOrWhiteSpace(playerName))
+        {
+            playerName = "Anonymous";
+        }
+
         Debug.Log("Game Started");
     }
 
     public void GameOver()
     {
-        if (isGameOver) return; 
+        if (isGameOver) return;
         isGameOver = true;
 
-        gameOverPanel.SetActive(true); // Show game over panel
-        gameUIPanel.SetActive(false); // Hide game UI panel
-        startPanel.SetActive(false); // Hide start panel
+        // Add score
+        ScoreManager.AddScore(playerName, currentLap);
 
-        Time.timeScale = 0f; // Pause the game
+        // Hide all panels
+        startPanel.SetActive(false);
+        gameUIPanel.SetActive(false);
+
+        // Show leaderboard panel and fill entries
+        ShowLeaderboard();
+        // Show game over panel
+        gameOverPanel.SetActive(true);
+
+        // Pause game AFTER UI finishes rendering
+        StartCoroutine(PauseAfterUI());
 
         Debug.Log("Game Over triggered!");
+    }
+
+    void ShowLeaderboard()
+    {
+        leaderboardPanel.SetActive(true);
+
+        // Remove old entries
+        foreach (Transform child in leaderboardContentParent)
+        {
+            Destroy(child.gameObject);
+        }
+
+        // Get saved scores
+        var scores = ScoreManager.GetScoreStrings();
+
+        // Add a text entry for each score
+        foreach (string score in scores)
+        {
+            GameObject entry = Instantiate(scoreEntryPrefab, leaderboardContentParent);
+            entry.SetActive(true);
+
+            TMP_Text text = entry.GetComponent<TMP_Text>();
+            if (text != null)
+            {
+                text.text = score.Replace(":", " - ");
+            }
+        }
     }
 
     public void RestartGame()
@@ -88,6 +135,14 @@ public class GameManager : MonoBehaviour
     {
         return isGameOver;
     }
+
+    // Coroutine to pause the game after UI has rendered
+    private IEnumerator PauseAfterUI()
+    {
+        yield return new WaitForEndOfFrame();  // wait until UI renders
+        Time.timeScale = 0f;                   // now pause the game
+    }
+
 }
 
 
