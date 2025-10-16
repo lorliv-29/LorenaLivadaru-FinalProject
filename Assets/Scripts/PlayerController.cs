@@ -6,7 +6,7 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody rb;                  // Player's Rigidbody for movement and recoil
     private Camera mainCamera;             // Main camera used for mouse aiming
-    //private LineRenderer lineRenderer;     // Draws aiming line from player to mouse
+    public GameManager gameManager;        // assign in Inspector
 
     // Pivot point for aiming (assign in Inspector) 
     [SerializeField]
@@ -22,6 +22,8 @@ public class PlayerController : MonoBehaviour
     public float projectileForce = 4f;     // Reduced force for better control
     public float recoilForce = 2f;         // Lowered recoil for smoother gameplay
     public float speed = 10f;              // Player movement speed using WASD
+    public float minMass = 0.1f;          // Minimum mass
+
 
     private Vector3 shootDirection;        // Shared direction used for both aiming and shooting
 
@@ -59,10 +61,15 @@ public class PlayerController : MonoBehaviour
             Shoot(shootDirection);
         }
 
-        // Update aim line in real-time
-        //UpdateLineRenderer(shootDirection);
-    }
+        // ------------------GameOver------------------
+        if (rb.mass < minMass)
+        {
+            gameManager.GameOver(); // show UI, stop player
 
+
+        }
+
+    }
     // ------------------ Mouse Aiming Logic ------------------
 
     Vector3 GetMouseDirection()
