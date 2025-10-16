@@ -47,6 +47,7 @@ public class GameManager : MonoBehaviour
         if (backgroundMusic != null && !backgroundMusic.isPlaying)
         {
             backgroundMusic.Play();
+
             Debug.Log("Background music started!");
 
         }
