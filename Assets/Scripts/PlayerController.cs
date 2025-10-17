@@ -6,7 +6,17 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody rb;                  // Player's Rigidbody for movement and recoil
     private Camera mainCamera;             // Main camera used for mouse aiming
-    private LineRenderer lineRenderer;     // Draws aiming line from player to mouse
+    public GameManager gameManager;        // assign in Inspector
+    public GameObject pickupEffectPrefab;  // Assign in Inspector
+
+
+    // Pivot point for aiming (assign in Inspector) 
+    [SerializeField]
+    private Transform aimPivot;
+
+    // Point from which projectiles are spawned
+    [SerializeField] 
+    private Transform projectileSpawnPoint;
 
     // ------------------ Variables ------------------------
 
@@ -14,6 +24,8 @@ public class PlayerController : MonoBehaviour
     public float projectileForce = 4f;     // Reduced force for better control
     public float recoilForce = 2f;         // Lowered recoil for smoother gameplay
     public float speed = 10f;              // Player movement speed using WASD
+    public float minMass = 0.5f;          // Minimum mass
+
 
     private Vector3 shootDirection;        // Shared direction used for both aiming and shooting
 
@@ -24,29 +36,44 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
 
-        lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.positionCount = 2; // Only need two points for a straight line
+        // Ensure aimPivot is assigned in the Inspector
+        if (aimPivot == null)
+        {
+            Debug.LogError("AimPivot is not assigned in the Inspector.");
+        }
+
+        //lineRenderer = GetComponent<LineRenderer>();
+        //lineRenderer.positionCount = 2; // Only need two points for a straight line
     }
 
     // ------------------ Per-Frame Updates ------------------
 
     void Update()
     {
+        // 0. Stop all input processing if the game hasn't started
+        if (!gameManager || !gameManager.IsGameStarted()) return;
 
-        //check for mouse click
+        // 1. Get direction from player to mouse
+        shootDirection = GetMouseDirection();
+
+        // 2. Rotate the aim pivot to face the mouse
+        UpdateAimingRotation(shootDirection);
+
+        // 3. If left mouse button is clicked, shoot
         if (Input.GetMouseButtonDown(0))
         {
-            // When clicked spawn a projectile at the player's position with no rotation.
             Shoot(shootDirection);
         }
 
-        // Calculate direction from player to mouse once per frame
-        shootDirection = GetMouseDirection();
+        // ------------------GameOver------------------
+        if (transform.localScale.x <= 0.5f && !gameManager.IsGameOver())
+        {
+            gameManager.GameOver(); // show UI, stop player
 
-        // Update aim line in real-time
-        UpdateLineRenderer(shootDirection);
+
+        }
+
     }
-
     // ------------------ Mouse Aiming Logic ------------------
 
     Vector3 GetMouseDirection()
@@ -60,68 +87,93 @@ public class PlayerController : MonoBehaviour
             Vector3 target = hit.point;
 
             // Flatten both target and player to same height
-            target.y = transform.position.y;
+            target.y = aimPivot.position.y;
 
-            Vector3 dir = target - transform.position;
-
-            float targetRotationY = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
-
-            transform.eulerAngles = new Vector3(transform.eulerAngles.x,
-                                                    targetRotationY,
-                                                    transform.eulerAngles.z);
+            // Direction from HINGE to mouse
+            Vector3 dir = target - aimPivot.position;
 
             // If direction is nearly zero, default to forward
-            if (dir.magnitude < 0.1f)
+            if (dir.sqrMagnitude < 0.1f)
             {
-                return transform.forward;
+                return aimPivot.forward;
             }
 
             return dir.normalized;
         }
-
-        return transform.forward; // fallback
+        
+        return aimPivot.forward; // Fallback: forward direction if ray doesn't hit anything
     }
 
     // ------------------ Visual Aim Line ----------------------
 
-    void UpdateLineRenderer(Vector3 dir)
-    {
-        //Start the line at the player's current position
-        lineRenderer.SetPosition(0, transform.position);
+    //void UpdateLineRenderer(Vector3 dir)
+    // {
+    //Start the line at the player's current position
+    //lineRenderer.SetPosition(0, transform.position);
 
-        //End the line 3 units in the shoot direction
-        lineRenderer.SetPosition(1, transform.position + dir * 3f);
+    //End the line 3 units in the shoot direction
+    //lineRenderer.SetPosition(1, transform.position + dir * 3f);
+    // }
+
+
+    void UpdateAimingRotation(Vector3 dir)
+    {
+        if (dir.sqrMagnitude > 0.001f)
+        {
+            // Get rotation that faces the direction
+            Quaternion targetRotation = Quaternion.LookRotation(dir);
+
+            // Only rotate around Y axis for horizontal aiming
+            aimPivot.rotation = Quaternion.Euler(0f, targetRotation.eulerAngles.y, 0f); // Y only
+        }
     }
 
     // ------------------ Shooting and Recoil ------------------
 
     void Shoot(Vector3 dir)
     {
-        // Visual debug line for shooting direction
-        Debug.DrawRay(transform.position, dir * 5f, Color.red, 2f);
-
-        // Flatten the shoot direction
+        // Make sure direction is horizontal
         dir.y = 0;
 
-        // Slightly offset spawn upward to prevent clipping
-        Vector3 spawnPos = transform.position + Vector3.up * 0.2f;
+        dir = dir.normalized;
 
-        GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+        // Determine spawn position at the projectile spawn point
+        Vector3 spawnPos = projectileSpawnPoint.position;
 
-        Rigidbody projRb = projectile.GetComponent<Rigidbody>();
+        spawnPos.y = 0f; // Force Y to 0
 
-        // Apply projectile force 
+        // Instantiate the projectile
+        GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(dir));
+
+       // Debug.Log("Projectile instantiated at: " + spawnPos);
+
+           // Apply force to the projectile
+            Rigidbody projRb = projectile.GetComponent<Rigidbody>();
         if (projRb != null)
         {
-            projRb.AddForce(dir.normalized * projectileForce, ForceMode.Impulse);
-            Destroy(projectile, 2f);
+            projRb.useGravity = false; //  keep it flat
+            projRb.AddForce(dir * projectileForce, ForceMode.Impulse);
+            Destroy(projectile, 2f); // Auto-destroy after 2 seconds
         }
 
-        // Apply recoil in opposite direction
-        rb.AddForce(-dir.normalized * recoilForce, ForceMode.Impulse);
+        // Apply recoil to the player in the opposite direction
+        //rb.AddForce(-dir * recoilForce, ForceMode.Impulse);
 
-        //Reduce player size by 5% on each shot
-        //transform.localScale *= 0.95f;
+        // ------------------ Scale based on size ------------------
+        // Scale factor based on player size (x-axis)
+        float sizeFactor = transform.localScale.x;
+        // Calculate dynamic recoil force
+        float scaledRecoil = recoilForce * sizeFactor;
+        // Apply recoil
+        rb.AddForce(-dir * scaledRecoil, ForceMode.Impulse);
+
+
+
+        // Visual debug ray to show shooting direction
+        Debug.DrawRay(spawnPos, dir * 2f, Color.red, 3f);
+
+        //Reduce player size by 2% on each shot
+        transform.localScale *= 0.98f;
     }
 
     // ------------------ WASD Movement ------------------------
@@ -134,9 +186,7 @@ public class PlayerController : MonoBehaviour
         Vector3 movement = new Vector3(moveHorizontal, 0.0f, moveVertical);
         rb.AddForce(movement * speed);
 
-        //Vector3 p = transform.position;
-       // p.y = 0f;
-        //transform.position = p;
+     
     }
 
     // ------------------ Pickup Collision -----------------------
@@ -145,11 +195,19 @@ public class PlayerController : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Pickup"))
         {
+            // Play pickup effect at the pickup's position
+            Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
+
             // Increase the player's size by 10%
             transform.localScale *= 1.1f;
 
             // Remove the pickup from the scene
             Destroy(other.gameObject);
+        }
+        else if (other.gameObject.CompareTag("FireSpin"))
+        {
+            // Reduce the player's size by 30%
+            transform.localScale *= 0.7f;
         }
     }
 }
