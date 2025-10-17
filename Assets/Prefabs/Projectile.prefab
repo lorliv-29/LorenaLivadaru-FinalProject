@@ -162,3 +162,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d55fb9a2894a53489d602fea3c71f63, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  BrickHitFBXPrefab: {fileID: 4473165501891174836, guid: 640dacb51c1cbef478c3d83cb66c627d, type: 3}
