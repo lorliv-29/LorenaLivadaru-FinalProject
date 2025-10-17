@@ -8,6 +8,7 @@ TagManager:
   - Pickup
   - StickyZone
   - FireSpin
+  - Brick
   layers:
   - Default
   - TransparentFX
