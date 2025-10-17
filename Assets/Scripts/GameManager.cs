@@ -27,6 +27,8 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         ShowStart();
+
+        CsvLogger.Instance.StartLogger();
     }
 
     public void StartGame()
@@ -53,6 +55,8 @@ public class GameManager : MonoBehaviour
         }
 
         Debug.Log("Game Started");
+
+        CsvLogger.LogEvent("Player Name", playerName);
     }
 
     public void GameOver()
@@ -105,6 +109,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public void DownloadData()
+    {
+        CsvLogger.Instance.StopLogger();
+    }
+
     public void RestartGame()
     {
         Time.timeScale = 1f; // Resume the game
@@ -128,6 +137,8 @@ public class GameManager : MonoBehaviour
 
     public void OnLapCompleted()
     {
+        CsvLogger.LogEvent("Lap Number", currentLap.ToString());
+
         currentLap++;
 
         Debug.Log("Lap Completed! Total laps: " + currentLap);
