@@ -9,6 +9,7 @@ TagManager:
   - StickyZone
   - FireSpin
   - Brick
+  - InnerBrick
   layers:
   - Default
   - TransparentFX
