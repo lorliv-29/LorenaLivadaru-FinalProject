@@ -3,7 +3,7 @@ using UnityEngine;
 public class Projectile : MonoBehaviour
 {
     public GameObject BrickHitFBXPrefab; // Assign in Inspector
-    public float floatForce = 2f;
+   // public float floatForce = 10f;
     void OnCollisionEnter(Collision col)
     {
         // Check if we hit a brick
@@ -19,29 +19,31 @@ public class Projectile : MonoBehaviour
             }
 
             // Find the "InnerBricks" group in the scene
-            GameObject innerGroup = GameObject.Find("InnerBricks");
+           // GameObject innerGroup = GameObject.Find("InnerBricks");
 
-            if (innerGroup != null)
-            {
+            //if (innerGroup != null)
+            //{
                 // Apply upward force to each inner brick
-                foreach (Transform t in innerGroup.transform)
-                {
+               // foreach (Transform t in innerGroup.transform)
+               // {
                     // Check if the inner brick has the correct tag
-                    if (t.CompareTag("InnerBrick"))
-                    {
-                        Rigidbody rb = t.GetComponent<Rigidbody>();
+                  //  if (t.CompareTag("InnerBrick"))
+                  //  {
+                     //   Rigidbody rb = t.GetComponent<Rigidbody>();
 
                         // Apply upward force
-                        if (rb != null)
-                        {
-                            rb.useGravity = true;
-                            rb.AddForce(Vector3.up * floatForce, ForceMode.Impulse);
-                        }
-                    }
-                }
+                      //  if (rb != null)
+                      //  {
+                        //    rb.WakeUp(); // Ensure the Rigidbody is active
+                       //     rb.useGravity = false;
+                       //     Vector3 explosionForce = new Vector3(Random.Range(-1f, 1f), Random.Range(2f, 4f), Random.Range(-1f, 1f));
+                       //     rb.AddForce(explosionForce * floatForce, ForceMode.Impulse);
+                      //  }
+                  //  }
+               // }
 
               
-            }
+           // }
 
             Destroy(col.collider.gameObject); // Destroy the brick
 
