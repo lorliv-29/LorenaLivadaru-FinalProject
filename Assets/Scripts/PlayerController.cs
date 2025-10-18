@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Audio;
 public class PlayerController : MonoBehaviour
 
 {
@@ -8,6 +9,10 @@ public class PlayerController : MonoBehaviour
     private Camera mainCamera;             // Main camera used for mouse aiming
     public GameManager gameManager;        // assign in Inspector
     public GameObject pickupEffectPrefab;  // Assign in Inspector
+    public AudioSource pickupAudio;       // Audio source for pickup sound effect
+
+    public AudioSource audioSource;      // Assign in Inspector
+    public AudioClip shootSound;         // Assign projectile sound in Inspector
 
 
     // Pivot point for aiming (assign in Inspector) 
@@ -28,6 +33,7 @@ public class PlayerController : MonoBehaviour
 
 
     private Vector3 shootDirection;        // Shared direction used for both aiming and shooting
+
 
     // ------------------ Initialization -------------------
 
@@ -145,10 +151,17 @@ public class PlayerController : MonoBehaviour
         // Instantiate the projectile
         GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(dir));
 
-       // Debug.Log("Projectile instantiated at: " + spawnPos);
+        // Play shooting sound effect
+        if (audioSource != null && shootSound != null)
+        {
+            audioSource.PlayOneShot(shootSound);
+        }
 
-           // Apply force to the projectile
-            Rigidbody projRb = projectile.GetComponent<Rigidbody>();
+
+        // Debug.Log("Projectile instantiated at: " + spawnPos);
+
+        // Apply force to the projectile
+        Rigidbody projRb = projectile.GetComponent<Rigidbody>();
         if (projRb != null)
         {
             projRb.useGravity = false; //  keep it flat
@@ -200,6 +213,12 @@ public class PlayerController : MonoBehaviour
 
             // Increase the player's size by 10%
             transform.localScale *= 1.1f;
+
+            // Play pickup sound if available
+            if (pickupAudio != null)
+            {
+                pickupAudio.Play();
+            }
 
             // Remove the pickup from the scene
             Destroy(other.gameObject);
