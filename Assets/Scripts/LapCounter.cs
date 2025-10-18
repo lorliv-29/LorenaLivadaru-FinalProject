@@ -1,45 +1,51 @@
+using System.Collections;
 using UnityEngine;
 
 public class LapCounter : MonoBehaviour
 {
-    public ObstacleMapManager mapManager; // Assign in the Inspector
-    public GameManager gameManager; // Assign in the Inspector
-    public GameObject confettiPrefab; // Assign in the Inspector
+    public ObstacleMapManager mapManager;         // Assign in Inspector
+    public GameManager gameManager;               // Assign in Inspector
+    public GameObject confettiPrefab;             // Assign in Inspector
+    public GameObject lapBarrier;                 // Single reusable barrier
+    public float barrierDelay = 5f;               // Delay before re-enabling the barrier
 
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
+    private bool isTriggered = false;
 
     void OnTriggerEnter(Collider other)
     {
+        if (!other.CompareTag("Player") || isTriggered) return;
+
+        isTriggered = true;
+
         Debug.Log("Trigger Entered by: " + other.name);
 
-        if (other.CompareTag("Player"))
-        {
-            if (gameManager != null)
-            {
-                gameManager.OnLapCompleted(); // Tell GameManager to count lap
-            }
-            if (mapManager != null)
-            {
-                mapManager.SwitchToNextLayout(); // Switch to the next layout
-            }
-
-        }
+        gameManager.OnLapCompleted();
 
         if (confettiPrefab != null)
-        {
             Instantiate(confettiPrefab, other.transform.position, Quaternion.identity);
-            //Destroy(confettiPrefab, 2f); // destroy after 2 seconds
+
+        // Deactivate the barrier temporarily
+        if (lapBarrier != null)
+        {
+            lapBarrier.SetActive(false);
         }
+
+        // Switch layout
+        mapManager.SwitchToNextLayout();
+
+        // Reactivate the barrier after delay
+        StartCoroutine(ReenableBarrier());
+    }
+
+    IEnumerator ReenableBarrier()
+    {
+        yield return new WaitForSeconds(barrierDelay);
+
+        if (lapBarrier != null)
+        {
+            lapBarrier.SetActive(true);
+        }
+
+        isTriggered = false; // Allow next lap
     }
 }
