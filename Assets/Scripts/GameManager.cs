@@ -16,6 +16,13 @@ public class GameManager : MonoBehaviour
     private string playerName;
     public AudioSource backgroundMusic; // assign in Inspector
 
+   //-----------LIFE BAR------------------
+    public Transform player;       
+    public Image lifeBarFill;    
+    public float fullSize = 2f; //player scale starts at 2
+    public float minSize = 0.5f;
+
+
 
     private bool isGameStarted = false;
     private bool isGameOver = false;
@@ -132,7 +139,12 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
+        if (IsGameStarted() && player != null && lifeBarFill != null)
+        {
+            float currentSize = player.localScale.x;
+            float fill = (currentSize - minSize) / (fullSize - minSize);
+            lifeBarFill.fillAmount = fill;
+        }
     }
 
     public void OnLapCompleted()
