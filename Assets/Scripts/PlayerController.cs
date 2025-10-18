@@ -213,7 +213,7 @@ public class PlayerController : MonoBehaviour
         else if (other.gameObject.CompareTag("SpeedPad"))
         {
             Vector3 boostDir = other.transform.forward; 
-            rb.AddForce(boostDir * 20f, ForceMode.Impulse); 
+            rb.AddForce(boostDir * 30f, ForceMode.Impulse); 
         }
     }
 }
