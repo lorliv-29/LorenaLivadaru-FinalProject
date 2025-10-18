@@ -209,5 +209,11 @@ public class PlayerController : MonoBehaviour
             // Reduce the player's size by 30%
             transform.localScale *= 0.7f;
         }
+
+        else if (other.gameObject.CompareTag("SpeedPad"))
+        {
+            Vector3 boostDir = other.transform.forward; 
+            rb.AddForce(boostDir * 20f, ForceMode.Impulse); 
+        }
     }
 }
