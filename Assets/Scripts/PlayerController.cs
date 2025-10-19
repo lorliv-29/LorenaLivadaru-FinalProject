@@ -9,8 +9,8 @@ public class PlayerController : MonoBehaviour
     private Camera mainCamera;             // Main camera used for mouse aiming
     public GameManager gameManager;        // assign in Inspector
     public GameObject pickupEffectPrefab;  // Assign in Inspector
-    public AudioSource pickupAudio;       // Audio source for pickup sound effect
 
+    public AudioSource pickupAudio;       // Audio source for pickup sound effect
     public AudioSource audioSource;      // Assign in Inspector
     public AudioClip shootSound;         // Assign projectile sound in Inspector
 

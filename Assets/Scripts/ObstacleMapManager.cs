@@ -2,28 +2,43 @@ using UnityEngine;
 
 public class ObstacleMapManager : MonoBehaviour
 {
-    public GameObject[] layouts; // Assign Layout_0/1/2...
+    public GameObject[] layouts; // Assign Layout Prefabs
+    private GameObject currentLayoutInstance;
     private int currentIndex = 0;
 
     void Start()
     {
-        ActivateLayout(currentIndex);
+        LoadLayout(currentIndex);
     }
 
-    // Switch to the next layout
+    // Switch to the next layout and reset it fully
     public void SwitchToNextLayout()
     {
-        layouts[currentIndex].SetActive(false);
+        // Destroy current layout if exists
+        if (currentLayoutInstance != null)
+        {
+            Destroy(currentLayoutInstance);
+        }
+
+        // Move to next layout index
         currentIndex = (currentIndex + 1) % layouts.Length;
-        layouts[currentIndex].SetActive(true);
+
+        // Instantiate new layout from prefab
+        LoadLayout(currentIndex);
+
         Debug.Log("Switched to layout: " + currentIndex);
     }
-    // Activate the layout at the specified index
-    private void ActivateLayout(int index)
+
+    // Instantiate layout prefab
+    private void LoadLayout(int index)
     {
-        for (int i = 0; i < layouts.Length; i++)
+        if (index >= 0 && index < layouts.Length)
         {
-            layouts[i].SetActive(i == index);
+            currentLayoutInstance = Instantiate(layouts[index], transform);
+        }
+        else
+        {
+            Debug.LogWarning("Layout index out of range: " + index);
         }
     }
 }
