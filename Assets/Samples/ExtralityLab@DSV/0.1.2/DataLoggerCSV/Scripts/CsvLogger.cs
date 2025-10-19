@@ -38,8 +38,8 @@ public class CsvLogger : MonoBehaviour
 
     private void Start()
     {
-        //// Uncomment if you want the logging to begin automatically.
-        // StartLogger();
+      
+         StartLogger();
     }
 
     private void OnApplicationQuit()

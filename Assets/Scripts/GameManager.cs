@@ -63,6 +63,8 @@ public class GameManager : MonoBehaviour
 
         Debug.Log("Game Started");
 
+        CsvLogger.LogEvent("Game Start Time", System.DateTime.Now.ToString("HH:mm:ss"));
+        CsvLogger.LogEvent("Start Player Scale", player.localScale.ToString("F2"));
         CsvLogger.LogEvent("Player Name", playerName);
     }
 
@@ -86,6 +88,8 @@ public class GameManager : MonoBehaviour
         // Pause game AFTER UI finishes rendering
         StartCoroutine(PauseAfterUI());
 
+        CsvLogger.LogEvent("Game Over Time", System.DateTime.Now.ToString("HH:mm:ss"));
+        CsvLogger.LogEvent("Total Laps Completed", currentLap.ToString());
         Debug.Log("Game Over triggered!");
     }
 
@@ -127,6 +131,9 @@ public class GameManager : MonoBehaviour
 
         // Reload the current scene to restart the game
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+        CsvLogger.LogEvent("Game Restarted", System.DateTime.Now.ToString("HH:mm:ss"));
+
     }
 
     private void ShowStart()
@@ -154,6 +161,9 @@ public class GameManager : MonoBehaviour
         currentLap++;
 
         Debug.Log("Lap Completed! Total laps: " + currentLap);
+        CsvLogger.LogEvent("Lap Number", currentLap.ToString());
+        CsvLogger.LogEvent("Player Scale", player.localScale.ToString("F2"));
+
 
         if (lapText != null)
             lapText.text = "Laps: " + currentLap;

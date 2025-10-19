@@ -211,8 +211,11 @@ public class PlayerController : MonoBehaviour
             // Play pickup effect at the pickup's position
             Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
 
-            // Increase the player's size by 10%
-            transform.localScale *= 1.1f;
+            // Increase the player's size by a fixed amount
+            Vector3 increase = Vector3.one * 0.1f; // Add 0.1 to each axis
+            Vector3 newScale = transform.localScale + increase;
+
+            transform.localScale = newScale;
 
             // Play pickup sound if available
             if (pickupAudio != null)
