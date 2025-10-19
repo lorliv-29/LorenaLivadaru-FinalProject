@@ -20,7 +20,7 @@ public class PlayerController : MonoBehaviour
     private Transform aimPivot;
 
     // Point from which projectiles are spawned
-    [SerializeField] 
+    [SerializeField]
     private Transform projectileSpawnPoint;
 
     // ------------------ Variables ------------------------
@@ -47,9 +47,6 @@ public class PlayerController : MonoBehaviour
         {
             Debug.LogError("AimPivot is not assigned in the Inspector.");
         }
-
-        //lineRenderer = GetComponent<LineRenderer>();
-        //lineRenderer.positionCount = 2; // Only need two points for a straight line
     }
 
     // ------------------ Per-Frame Updates ------------------
@@ -106,20 +103,9 @@ public class PlayerController : MonoBehaviour
 
             return dir.normalized;
         }
-        
+
         return aimPivot.forward; // Fallback: forward direction if ray doesn't hit anything
     }
-
-    // ------------------ Visual Aim Line ----------------------
-
-    //void UpdateLineRenderer(Vector3 dir)
-    // {
-    //Start the line at the player's current position
-    //lineRenderer.SetPosition(0, transform.position);
-
-    //End the line 3 units in the shoot direction
-    //lineRenderer.SetPosition(1, transform.position + dir * 3f);
-    // }
 
 
     void UpdateAimingRotation(Vector3 dir)
@@ -157,9 +143,6 @@ public class PlayerController : MonoBehaviour
             audioSource.PlayOneShot(shootSound);
         }
 
-
-        // Debug.Log("Projectile instantiated at: " + spawnPos);
-
         // Apply force to the projectile
         Rigidbody projRb = projectile.GetComponent<Rigidbody>();
         if (projRb != null)
@@ -191,19 +174,19 @@ public class PlayerController : MonoBehaviour
 
     // ------------------ WASD Movement ------------------------
 
-    void FixedUpdate()
-    {
-        float moveHorizontal = Input.GetAxis("Horizontal");
-        float moveVertical = Input.GetAxis("Vertical");
+    //  void FixedUpdate()
+    // {
+    //    float moveHorizontal = Input.GetAxis("Horizontal");
+    //   float moveVertical = Input.GetAxis("Vertical");
 
-        Vector3 movement = new Vector3(moveHorizontal, 0.0f, moveVertical);
-        rb.AddForce(movement * speed);
+    //   Vector3 movement = new Vector3(moveHorizontal, 0.0f, moveVertical);
+    //  rb.AddForce(movement * speed);
 
-     
-    }
+
+    //  }
 
     // ------------------ Pickup Collision -----------------------
-    
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.CompareTag("Pickup"))
@@ -234,8 +217,8 @@ public class PlayerController : MonoBehaviour
 
         else if (other.gameObject.CompareTag("SpeedPad"))
         {
-            Vector3 boostDir = other.transform.forward; 
-            rb.AddForce(boostDir * 30f, ForceMode.Impulse); 
+            Vector3 boostDir = other.transform.forward;
+            rb.AddForce(boostDir * 30f, ForceMode.Impulse);
         }
     }
 }
