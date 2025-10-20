@@ -24,7 +24,7 @@ public class GameManager : MonoBehaviour
 
 
 
-    private bool isGameStarted = false;
+    private bool isGameStarted = false; 
     private bool isGameOver = false;
 
     public int currentLap = 0;             // Current lap count
