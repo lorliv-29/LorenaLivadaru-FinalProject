@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.lorliv.tanks": {
+      "version": "file:C:/Users/livad/Documents/Tanks!/com.lorliv.tanks-0.1.0/package",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.test-framework": "1.6.0"
+      }
+    },
     "com.meta.xr.sdk.interaction": {
       "version": "83.0.1",
       "depth": 0,
