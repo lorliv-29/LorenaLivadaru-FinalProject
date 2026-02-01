@@ -3,163 +3,133 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour
 {
-    // ------------------ Core References ------------------
     private Rigidbody rb;
     private Camera mainCamera;
     public GameManager gameManager;
     public GameObject pickupEffectPrefab;
 
-    [Header("Audio")]
-    public AudioSource pickupAudio;
-    public AudioSource audioSource;
-    public AudioClip shootSound;
-
-    [Header("VR Input References")]
-    public InputActionReference throttleAction; // Left Grip (The "Gas Pedal")
-    public InputActionReference shootAction;    // Right Trigger
-    public InputActionReference moveAction;     // Left Joystick (Manual Steering)
-
-    [Header("VR Movement Settings")]
+    [Header("Driving (Left Hand & Gaze)")]
+    public InputActionReference throttleAction; // Left Grip (Squeeze for Speed)
+    public InputActionReference moveAction;     // Left Stick (The Steering)
     public float maxSpeed = 10f;
     public float drag = 1f;
 
-    [Header("Aiming & Projectiles")]
-    [SerializeField] private Transform projectileSpawnPoint;
-    public GameObject projectilePrefab;
-    public float projectileForce = 4f;
+    [Header("Combat (Right Hand)")]
+    public InputActionReference turretSqueezeAction; // Right Grip (Unlock Aim)
+    public InputActionReference rightHandPosAction;  // Right Hand Aiming
+    public InputActionReference interactAction;      // Right Interact (Fire)
+    public Transform turretHinge;                    // The 'hinge' object
+    public float turretTurnSpeed = 8f;
 
-    // --- MANUAL ACTIVATION ---
+    [Header("Projectiles")]
+    [SerializeField] private Transform projectileSpawnPoint; // Barrel tip
+    public GameObject projectilePrefab;
+    public float projectileForce = 1500f; // MASSIVE force for high speed
+
     private void OnEnable()
     {
-        // Explicitly enable all actions to ensure they work in the Simulator
         if (throttleAction != null) throttleAction.action.Enable();
-        if (shootAction != null) shootAction.action.Enable();
         if (moveAction != null) moveAction.action.Enable();
-
-        Debug.Log("<color=green>SUCCESS:</color> VR Inputs Enabled!");
-    }
-
-    private void OnDisable()
-    {
-        if (throttleAction != null) throttleAction.action.Disable();
-        if (shootAction != null) shootAction.action.Disable();
-        if (moveAction != null) moveAction.action.Disable();
+        if (turretSqueezeAction != null) turretSqueezeAction.action.Enable();
+        if (rightHandPosAction != null) rightHandPosAction.action.Enable();
+        if (interactAction != null) interactAction.action.Enable();
     }
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
-
-        if (mainCamera == null) Debug.LogError("No Main Camera found!");
-
         rb.linearDamping = drag;
+        rb.constraints = RigidbodyConstraints.FreezeRotation; // Stops the tank from tipping
+    }
 
-        // Keep vision stable for VR: Stops the camera from spinning with the ball
-        rb.constraints = RigidbodyConstraints.FreezeRotation;
+    void Update()
+    {
+        // EMERGENCY DEBUG: If you squeeze the right grip, this WILL show in the console
+        float testSqueeze = turretSqueezeAction.action.ReadValue<float>();
+        if (testSqueeze > 0.05f) Debug.Log($"<color=orange>TURRET SQUEEZE:</color> {testSqueeze}");
+
+        if (!gameManager || !gameManager.IsGameStarted()) return;
+
+        // --- TURRET MOVEMENT ---
+        if (turretHinge != null)
+        {
+            if (testSqueeze > 0.5f)
+            {
+                // RESTORED: Uses hand position relative to the tank
+                Vector3 handPos = rightHandPosAction.action.ReadValue<Vector3>();
+                Vector3 aimDir = new Vector3(handPos.x, 0, handPos.z).normalized;
+
+                if (aimDir != Vector3.zero)
+                {
+                    Quaternion targetRot = Quaternion.LookRotation(aimDir);
+                    turretHinge.localRotation = Quaternion.Slerp(turretHinge.localRotation, targetRot, Time.deltaTime * turretTurnSpeed);
+                }
+            }
+            else
+            {
+                // Returns turret to face forward when grip is released
+                turretHinge.localRotation = Quaternion.Slerp(turretHinge.localRotation, Quaternion.identity, Time.deltaTime * turretTurnSpeed);
+            }
+        }
+
+        if (interactAction.action.WasPressedThisFrame()) Shoot();
     }
 
     void FixedUpdate()
     {
         if (!gameManager || !gameManager.IsGameStarted()) return;
 
-        //======== reading the VR inputs =====
-
-        //speed control via left grip (throttle)
+        // RESTORED: Thumbstick for Move
         float throttle = throttleAction.action.ReadValue<float>();
+        Vector2 leftStick = moveAction.action.ReadValue<Vector2>();
 
-        //steering via left joystick
-        Vector2 joystickInput = moveAction.action.ReadValue<Vector2>();
-
-        // 1. Get Camera directions (The Compass)
         Vector3 camForward = mainCamera.transform.forward;
         Vector3 camRight = mainCamera.transform.right;
+        camForward.y = 0; camRight.y = 0;
+        camForward.Normalize(); camRight.Normalize();
 
-        // Flatten to the horizontal plane
-        camForward.y = 0;
-        camRight.y = 0;
-        // Normalize vectors to unit length after flattening (to avoid faster diagonal movement)
-        camForward.Normalize();
-        camRight.Normalize();
-
-        // 2. Create the Move Direction with a Deadzone for Precision
-        Vector3 moveDir;
-
-        // Magnitude check: only use joystick if pushed more than 20%
-        if (joystickInput.magnitude > 0.2f)
-        {
-            moveDir = (camForward * joystickInput.y) + (camRight * joystickInput.x);
-        }
-        else
-        {
-            moveDir = camForward; // Default to head-gaze direction
-        }
+        // Direction based on Gaze + Thumbstick
+        Vector3 moveDir = (camForward * leftStick.y) + (camRight * leftStick.x);
+        if (leftStick.magnitude < 0.1f) moveDir = camForward;
         moveDir.Normalize();
 
-        // 3. Apply Velocity
         rb.linearVelocity = moveDir * (throttle * maxSpeed);
 
-        // 4. PRECISION ROTATION (Slerp)
-
-        //only rotate if moving (throttle > 10%) to avoid jitter when idle
         if (throttle > 0.1f && moveDir != Vector3.zero)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDir);
-
-            // --- PRECISION ---
-            //  much smoother, car-like turn.
-           
-            float turnSmoothness = 3f;
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.fixedDeltaTime * turnSmoothness);
+            Quaternion targetRot = Quaternion.LookRotation(moveDir);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.fixedDeltaTime * 3f);
         }
     }
 
-    void Update()
+    void Shoot()
     {
-        if (!gameManager || !gameManager.IsGameStarted()) return;
+        // 1. Spawn the projectile
+        GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
 
-        // VR Shooting (Head Gaze Aiming)
-        if (shootAction.action.WasPressedThisFrame())
-        {
-            Shoot(mainCamera.transform.forward);
-        }
-    }
+        // 2. Clear self-collision so it doesn't "hit" the barrel and float
+        Collider tankCollider = GetComponent<Collider>();
+        Collider projCollider = proj.GetComponent<Collider>();
+        if (tankCollider != null && projCollider != null) Physics.IgnoreCollision(tankCollider, projCollider);
 
-    void Shoot(Vector3 dir)
-    {
-        dir.y = 0;
-        GameObject projectile = Instantiate(projectilePrefab, projectileSpawnPoint.position, Quaternion.LookRotation(dir));
-
-        if (audioSource != null && shootSound != null)
-        {
-            audioSource.PlayOneShot(shootSound);
-        }
-
-        Rigidbody projRb = projectile.GetComponent<Rigidbody>();
+        // 3. APPLY FORCE (If it floats, the force isn't high enough or Gravity is off)
+        Rigidbody projRb = proj.GetComponent<Rigidbody>();
         if (projRb != null)
         {
-            projRb.useGravity = false;
-            projRb.AddForce(dir * projectileForce, ForceMode.Impulse);
-            Destroy(projectile, 2f);
+            projRb.useGravity = false; // Keep it straight like a laser
+            projRb.AddForce(projectileSpawnPoint.forward * projectileForce); // Speed applied
         }
+        Destroy(proj, 3f);
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.CompareTag("Pickup"))
         {
-            Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
+            if (pickupEffectPrefab) Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
             transform.localScale += Vector3.one * 0.1f;
-            if (pickupAudio != null) pickupAudio.Play();
             Destroy(other.gameObject);
-        }
-        else if (other.gameObject.CompareTag("FireSpin"))
-        {
-            transform.localScale *= 0.7f;
-        }
-        else if (other.gameObject.CompareTag("SpeedPad"))
-        {
-            rb.AddForce(other.transform.forward * 30f, ForceMode.Impulse);
         }
     }
 }
