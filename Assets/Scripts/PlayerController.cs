@@ -1,224 +1,114 @@
 using UnityEngine;
-using UnityEngine.Audio;
+using UnityEngine.InputSystem;
+
 public class PlayerController : MonoBehaviour
-
 {
-    // ------------------ Core References ------------------
+    // ------------------ Core References (PRESERVED) ------------------
+    private Rigidbody rb;
+    private Camera mainCamera;
+    public GameManager gameManager;
+    public GameObject pickupEffectPrefab;
 
-    private Rigidbody rb;                  // Player's Rigidbody for movement and recoil
-    private Camera mainCamera;             // Main camera used for mouse aiming
-    public GameManager gameManager;        // assign in Inspector
-    public GameObject pickupEffectPrefab;  // Assign in Inspector
+    [Header("Audio (PRESERVED)")]
+    public AudioSource pickupAudio;
+    public AudioSource audioSource;
+    public AudioClip shootSound;
 
-    public AudioSource pickupAudio;       // Audio source for pickup sound effect
-    public AudioSource audioSource;      // Assign in Inspector
-    public AudioClip shootSound;         // Assign projectile sound in Inspector
+    [Header("VR Input References")]
+    public InputActionReference throttleAction; // Map to Left Grip
+    public InputActionReference shootAction;    // Map to Right Trigger
 
+    [Header("VR Movement Settings")]
+    public float maxSpeed = 10f;
+    public float drag = 1f;
 
-    // Pivot point for aiming (assign in Inspector) 
-    [SerializeField]
-    private Transform aimPivot;
-
-    // Point from which projectiles are spawned
-    [SerializeField]
-    private Transform projectileSpawnPoint;
-
-    // ------------------ Variables ------------------------
-
-    public GameObject projectilePrefab;    // Prefab to instantiate as a projectile
-    public float projectileForce = 4f;     // Reduced force for better control
-    public float recoilForce = 2f;         // Lowered recoil for smoother gameplay
-    public float speed = 10f;              // Player movement speed using WASD
-    public float minMass = 0.5f;          // Minimum mass
-
-
-    private Vector3 shootDirection;        // Shared direction used for both aiming and shooting
-
-
-    // ------------------ Initialization -------------------
+    [Header("Aiming & Projectiles (PRESERVED)")]
+    [SerializeField] private Transform projectileSpawnPoint;
+    public GameObject projectilePrefab;
+    public float projectileForce = 4f;
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
+        rb.linearDamping = drag;
 
-        // Ensure aimPivot is assigned in the Inspector
-        if (aimPivot == null)
-        {
-            Debug.LogError("AimPivot is not assigned in the Inspector.");
-        }
+        // STABILITY: Keeps your eyes from spinning with the ball
+        rb.constraints = RigidbodyConstraints.FreezeRotation;
     }
 
-    // ------------------ Per-Frame Updates ------------------
+    void FixedUpdate()
+    {
+        if (!gameManager || !gameManager.IsGameStarted()) return;
+
+        // NEW VR LOCOMOTION: No shooting required to move!
+        float throttle = throttleAction.action.ReadValue<float>();
+        Vector3 moveDir = mainCamera.transform.forward;
+        moveDir.y = 0; // The "Flat Rail" rule
+        moveDir.Normalize();
+
+        rb.linearVelocity = moveDir * (throttle * maxSpeed);
+
+        if (throttle > 0.1f) transform.forward = moveDir;
+
+        // DEBUG: Helps verify the simulator 'G' key is working
+        // Debug.Log("Throttle: " + throttle);
+    }
 
     void Update()
     {
-        // 0. Stop all input processing if the game hasn't started
         if (!gameManager || !gameManager.IsGameStarted()) return;
 
-        // 1. Get direction from player to mouse
-        shootDirection = GetMouseDirection();
-
-        // 2. Rotate the aim pivot to face the mouse
-        UpdateAimingRotation(shootDirection);
-
-        // 3. If left mouse button is clicked, shoot
-        if (Input.GetMouseButtonDown(0))
+        // VR SHOOTING: Purely for bricks/gameplay
+        if (shootAction.action.WasPressedThisFrame())
         {
-            Shoot(shootDirection);
+            Shoot(mainCamera.transform.forward);
         }
 
-        // ------------------GameOver------------------
         if (transform.localScale.x <= 0.5f && !gameManager.IsGameOver())
         {
-            gameManager.GameOver(); // show UI, stop player
-
-
-        }
-
-    }
-    // ------------------ Mouse Aiming Logic ------------------
-
-    Vector3 GetMouseDirection()
-    {
-        //cast a ray from mouse position
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-
-        //check if ray hits something
-        if (Physics.Raycast(ray, out RaycastHit hit))
-        {
-            Vector3 target = hit.point;
-
-            // Flatten both target and player to same height
-            target.y = aimPivot.position.y;
-
-            // Direction from HINGE to mouse
-            Vector3 dir = target - aimPivot.position;
-
-            // If direction is nearly zero, default to forward
-            if (dir.sqrMagnitude < 0.1f)
-            {
-                return aimPivot.forward;
-            }
-
-            return dir.normalized;
-        }
-
-        return aimPivot.forward; // Fallback: forward direction if ray doesn't hit anything
-    }
-
-
-    void UpdateAimingRotation(Vector3 dir)
-    {
-        if (dir.sqrMagnitude > 0.001f)
-        {
-            // Get rotation that faces the direction
-            Quaternion targetRotation = Quaternion.LookRotation(dir);
-
-            // Only rotate around Y axis for horizontal aiming
-            aimPivot.rotation = Quaternion.Euler(0f, targetRotation.eulerAngles.y, 0f); // Y only
+            gameManager.GameOver();
         }
     }
-
-    // ------------------ Shooting and Recoil ------------------
 
     void Shoot(Vector3 dir)
     {
-        // Make sure direction is horizontal
         dir.y = 0;
+        GameObject projectile = Instantiate(projectilePrefab, projectileSpawnPoint.position, Quaternion.LookRotation(dir));
 
-        dir = dir.normalized;
-
-        // Determine spawn position at the projectile spawn point
-        Vector3 spawnPos = projectileSpawnPoint.position;
-
-        spawnPos.y = 0f; // Force Y to 0
-
-        // Instantiate the projectile
-        GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(dir));
-
-        // Play shooting sound effect
+        // AUDIO (PRESERVED)
         if (audioSource != null && shootSound != null)
         {
             audioSource.PlayOneShot(shootSound);
         }
 
-        // Apply force to the projectile
         Rigidbody projRb = projectile.GetComponent<Rigidbody>();
         if (projRb != null)
         {
-            projRb.useGravity = false; //  keep it flat
+            projRb.useGravity = false;
             projRb.AddForce(dir * projectileForce, ForceMode.Impulse);
-            Destroy(projectile, 2f); // Auto-destroy after 2 seconds
+            Destroy(projectile, 2f);
         }
-
-        // Apply recoil to the player in the opposite direction
-        //rb.AddForce(-dir * recoilForce, ForceMode.Impulse);
-
-        // ------------------ Scale based on size ------------------
-        // Scale factor based on player size (x-axis)
-        float sizeFactor = transform.localScale.x;
-        // Calculate dynamic recoil force
-        float scaledRecoil = recoilForce * sizeFactor;
-        // Apply recoil
-        rb.AddForce(-dir * scaledRecoil, ForceMode.Impulse);
-
-
-
-        // Visual debug ray to show shooting direction
-        Debug.DrawRay(spawnPos, dir * 2f, Color.red, 3f);
-
-        //Reduce player size by 2% on each shot
-        transform.localScale *= 0.98f;
+        // RECOIL REMOVED: To keep the VR camera stable.
     }
 
-    // ------------------ WASD Movement ------------------------
-
-    //  void FixedUpdate()
-    // {
-    //    float moveHorizontal = Input.GetAxis("Horizontal");
-    //   float moveVertical = Input.GetAxis("Vertical");
-
-    //   Vector3 movement = new Vector3(moveHorizontal, 0.0f, moveVertical);
-    //  rb.AddForce(movement * speed);
-
-
-    //  }
-
-    // ------------------ Pickup Collision -----------------------
-
+    // ------------------ INTERACTION LOGIC (PRESERVED) ------------------
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.CompareTag("Pickup"))
         {
-            // Play pickup effect at the pickup's position
             Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
-
-            // Increase the player's size by a fixed amount
-            Vector3 increase = Vector3.one * 0.1f; // Add 0.1 to each axis
-            Vector3 newScale = transform.localScale + increase;
-
-            transform.localScale = newScale;
-
-            // Play pickup sound if available
-            if (pickupAudio != null)
-            {
-                pickupAudio.Play();
-            }
-
-            // Remove the pickup from the scene
+            transform.localScale += Vector3.one * 0.1f;
+            if (pickupAudio != null) pickupAudio.Play();
             Destroy(other.gameObject);
         }
         else if (other.gameObject.CompareTag("FireSpin"))
         {
-            // Reduce the player's size by 30%
             transform.localScale *= 0.7f;
         }
-
         else if (other.gameObject.CompareTag("SpeedPad"))
         {
-            Vector3 boostDir = other.transform.forward;
-            rb.AddForce(boostDir * 30f, ForceMode.Impulse);
+            rb.AddForce(other.transform.forward * 30f, ForceMode.Impulse);
         }
     }
 }
