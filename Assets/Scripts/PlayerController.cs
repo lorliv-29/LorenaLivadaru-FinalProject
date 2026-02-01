@@ -63,20 +63,28 @@ public class PlayerController : MonoBehaviour
     {
         if (!gameManager || !gameManager.IsGameStarted()) return;
 
+        //======== reading the VR inputs =====
+
+        //speed control via left grip (throttle)
         float throttle = throttleAction.action.ReadValue<float>();
+
+        //steering via left joystick
         Vector2 joystickInput = moveAction.action.ReadValue<Vector2>();
 
         // 1. Get Camera directions (The Compass)
         Vector3 camForward = mainCamera.transform.forward;
         Vector3 camRight = mainCamera.transform.right;
 
+        // Flatten to the horizontal plane
         camForward.y = 0;
         camRight.y = 0;
+        // Normalize vectors to unit length after flattening (to avoid faster diagonal movement)
         camForward.Normalize();
         camRight.Normalize();
 
         // 2. Create the Move Direction with a Deadzone for Precision
         Vector3 moveDir;
+
         // Magnitude check: only use joystick if pushed more than 20%
         if (joystickInput.magnitude > 0.2f)
         {
@@ -92,13 +100,15 @@ public class PlayerController : MonoBehaviour
         rb.linearVelocity = moveDir * (throttle * maxSpeed);
 
         // 4. PRECISION ROTATION (Slerp)
+
+        //only rotate if moving (throttle > 10%) to avoid jitter when idle
         if (throttle > 0.1f && moveDir != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDir);
 
-            // --- PRECISION TWEAK HERE ---
-            // Changed from 10f to 3f for a much smoother, car-like turn.
-            // If it's too slow now, try 4f or 5f.
+            // --- PRECISION ---
+            //  much smoother, car-like turn.
+           
             float turnSmoothness = 3f;
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.fixedDeltaTime * turnSmoothness);
         }
