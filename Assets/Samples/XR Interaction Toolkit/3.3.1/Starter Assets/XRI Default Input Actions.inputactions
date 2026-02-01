@@ -904,6 +904,17 @@
                     "action": "throttle",
                     "isComposite": false,
                     "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e32a0094-51eb-4de5-b9e5-313ef752ff8d",
+                    "path": "<Keyboard>/0",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "throttle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
