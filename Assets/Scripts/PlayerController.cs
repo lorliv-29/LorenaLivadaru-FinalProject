@@ -56,7 +56,7 @@ public class PlayerController : MonoBehaviour
         {
             if (testSqueeze > 0.5f)
             {
-                // RESTORED: Uses hand position relative to the tank
+                //  Uses hand position relative to the tank
                 Vector3 handPos = rightHandPosAction.action.ReadValue<Vector3>();
                 Vector3 aimDir = new Vector3(handPos.x, 0, handPos.z).normalized;
 
@@ -80,7 +80,7 @@ public class PlayerController : MonoBehaviour
     {
         if (!gameManager || !gameManager.IsGameStarted()) return;
 
-        // RESTORED: Thumbstick for Move
+        // Thumbstick for Move
         float throttle = throttleAction.action.ReadValue<float>();
         Vector2 leftStick = moveAction.action.ReadValue<Vector2>();
 
@@ -105,7 +105,7 @@ public class PlayerController : MonoBehaviour
 
     void Shoot()
     {
-        // 1. Spawn the projectile
+        // 1. Spawn the projectile at the muzzle position and rotation
         GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
 
         // 2. Clear self-collision so it doesn't "hit" the barrel and float
@@ -113,12 +113,14 @@ public class PlayerController : MonoBehaviour
         Collider projCollider = proj.GetComponent<Collider>();
         if (tankCollider != null && projCollider != null) Physics.IgnoreCollision(tankCollider, projCollider);
 
-        // 3. APPLY FORCE (If it floats, the force isn't high enough or Gravity is off)
         Rigidbody projRb = proj.GetComponent<Rigidbody>();
         if (projRb != null)
         {
-            projRb.useGravity = false; // Keep it straight like a laser
-            projRb.AddForce(projectileSpawnPoint.forward * projectileForce); // Speed applied
+            projRb.linearVelocity = Vector3.zero; // Clear any physics "lag"
+
+            // 3. APPLY FORCE (Using 'forward' ensures it follows the muzzle's blue arrow)
+            // Set 'projectileForce' to at least 1500 in the Inspector for a fast shot
+            projRb.AddForce(projectileSpawnPoint.forward * projectileForce);
         }
         Destroy(proj, 3f);
     }
