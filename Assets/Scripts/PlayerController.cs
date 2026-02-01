@@ -37,6 +37,18 @@ public class PlayerController : MonoBehaviour
         rb.constraints = RigidbodyConstraints.FreezeRotation;
     }
 
+    private void OnEnable()
+    {
+        if (throttleAction != null) throttleAction.action.Enable();
+        if (shootAction != null) shootAction.action.Enable();
+    }
+
+    private void OnDisable()
+    {
+        if (throttleAction != null) throttleAction.action.Disable();
+        if (shootAction != null) shootAction.action.Disable();
+    }
+
     void FixedUpdate()
     {
         if (!gameManager || !gameManager.IsGameStarted()) return;
