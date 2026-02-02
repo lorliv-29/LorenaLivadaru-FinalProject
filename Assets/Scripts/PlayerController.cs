@@ -1,226 +1,137 @@
 using UnityEngine;
-using UnityEngine.Audio;
+using UnityEngine.InputSystem;
+
 public class PlayerController : MonoBehaviour
-
 {
-    // ------------------ Core References ------------------
+    private Rigidbody rb;
+    private Camera mainCamera;
+    public GameManager gameManager;
+    public GameObject pickupEffectPrefab;
 
-    private Rigidbody rb;                  // Player's Rigidbody for movement and recoil
-    private Camera mainCamera;             // Main camera used for mouse aiming
-    public GameManager gameManager;        // assign in Inspector
-    public GameObject pickupEffectPrefab;  // Assign in Inspector
+    [Header("Driving (Left Hand & Gaze)")]
+    public InputActionReference throttleAction; // Left Grip (Squeeze for Speed)
+    public InputActionReference moveAction;     // Left Stick (The Steering)
+    public float maxSpeed = 10f;
+    public float drag = 1f;
 
-    public AudioSource pickupAudio;       // Audio source for pickup sound effect
-    public AudioSource audioSource;      // Assign in Inspector
-    public AudioClip shootSound;         // Assign projectile sound in Inspector
+    [Header("Combat (Right Hand)")]
+    public InputActionReference turretSqueezeAction; // Right Grip (Unlock Aim)
+    public InputActionReference rightHandPosAction;  // Right Hand Aiming
+    public InputActionReference interactAction;      // Right Interact (Fire)
+    public Transform turretHinge;                    // The 'hinge' object
+    public float turretTurnSpeed = 8f;
 
+    [Header("Projectiles")]
+    [SerializeField] private Transform projectileSpawnPoint; // Barrel tip
+    public GameObject projectilePrefab;
+    public float projectileForce = 1500f; // MASSIVE force for high speed
 
-    // Pivot point for aiming (assign in Inspector) 
-    [SerializeField]
-    private Transform aimPivot;
-
-    // Point from which projectiles are spawned
-    [SerializeField]
-    private Transform projectileSpawnPoint;
-
-    // ------------------ Variables ------------------------
-
-    public GameObject projectilePrefab;    // Prefab to instantiate as a projectile
-    public float projectileForce = 4f;     // Reduced force for better control
-    public float recoilForce = 2f;         // Lowered recoil for smoother gameplay
-    public float speed = 10f;              // Player movement speed using WASD
-    public float minMass = 0.5f;          // Minimum mass
-
-
-    private Vector3 shootDirection;        // Shared direction used for both aiming and shooting
-
-
-    // ------------------ Initialization -------------------
+    private void OnEnable()
+    {
+        if (throttleAction != null) throttleAction.action.Enable();
+        if (moveAction != null) moveAction.action.Enable();
+        if (turretSqueezeAction != null) turretSqueezeAction.action.Enable();
+        if (rightHandPosAction != null) rightHandPosAction.action.Enable();
+        if (interactAction != null) interactAction.action.Enable();
+    }
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
-
-        // Ensure aimPivot is assigned in the Inspector
-        if (aimPivot == null)
-        {
-            Debug.LogError("AimPivot is not assigned in the Inspector.");
-        }
+        rb.linearDamping = drag;
+        rb.constraints = RigidbodyConstraints.FreezeRotation; // Stops the tank from tipping
     }
-
-    // ------------------ Per-Frame Updates ------------------
 
     void Update()
     {
-        // 0. Stop all input processing if the game hasn't started
+        // EMERGENCY DEBUG: If you squeeze the right grip, this WILL show in the console
+        float testSqueeze = turretSqueezeAction.action.ReadValue<float>();
+        if (testSqueeze > 0.05f) Debug.Log($"<color=orange>TURRET SQUEEZE:</color> {testSqueeze}");
+
         if (!gameManager || !gameManager.IsGameStarted()) return;
 
-        // 1. Get direction from player to mouse
-        shootDirection = GetMouseDirection();
-
-        // 2. Rotate the aim pivot to face the mouse
-        UpdateAimingRotation(shootDirection);
-
-        // 3. If left mouse button is clicked, shoot
-        if (Input.GetMouseButtonDown(0))
+        // --- TURRET MOVEMENT ---
+        if (turretHinge != null)
         {
-            Shoot(shootDirection);
-        }
-
-        // ------------------GameOver------------------
-        if (transform.localScale.x <= 0.5f && !gameManager.IsGameOver())
-        {
-            gameManager.GameOver(); // show UI, stop player
-
-
-        }
-
-    }
-    // ------------------ Mouse Aiming Logic ------------------
-
-    Vector3 GetMouseDirection()
-    {
-        //cast a ray from mouse position
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-
-        //check if ray hits something
-        if (Physics.Raycast(ray, out RaycastHit hit))
-        {
-            Vector3 target = hit.point;
-
-            // Flatten both target and player to same height
-            target.y = aimPivot.position.y;
-
-            // Direction from HINGE to mouse
-            Vector3 dir = target - aimPivot.position;
-
-            // If direction is nearly zero, default to forward
-            if (dir.sqrMagnitude < 0.1f)
+            if (testSqueeze > 0.5f)
             {
-                return aimPivot.forward;
+                //  Uses hand position relative to the tank
+                Vector3 handPos = rightHandPosAction.action.ReadValue<Vector3>();
+                Vector3 aimDir = new Vector3(handPos.x, 0, handPos.z).normalized;
+
+                if (aimDir != Vector3.zero)
+                {
+                    Quaternion targetRot = Quaternion.LookRotation(aimDir);
+                    turretHinge.localRotation = Quaternion.Slerp(turretHinge.localRotation, targetRot, Time.deltaTime * turretTurnSpeed);
+                }
             }
-
-            return dir.normalized;
+            else
+            {
+                // Returns turret to face forward when grip is released
+                turretHinge.localRotation = Quaternion.Slerp(turretHinge.localRotation, Quaternion.identity, Time.deltaTime * turretTurnSpeed);
+            }
         }
 
-        return aimPivot.forward; // Fallback: forward direction if ray doesn't hit anything
+        if (interactAction.action.WasPressedThisFrame()) Shoot();
     }
 
-
-
-
-    void UpdateAimingRotation(Vector3 dir)
+    void FixedUpdate()
     {
-        if (dir.sqrMagnitude > 0.001f)
-        {
-            // Get rotation that faces the direction
-            Quaternion targetRotation = Quaternion.LookRotation(dir);
+        if (!gameManager || !gameManager.IsGameStarted()) return;
 
-            // Only rotate around Y axis for horizontal aiming
-            aimPivot.rotation = Quaternion.Euler(0f, targetRotation.eulerAngles.y, 0f); // Y only
+        // Thumbstick for Move
+        float throttle = throttleAction.action.ReadValue<float>();
+        Vector2 leftStick = moveAction.action.ReadValue<Vector2>();
+
+        Vector3 camForward = mainCamera.transform.forward;
+        Vector3 camRight = mainCamera.transform.right;
+        camForward.y = 0; camRight.y = 0;
+        camForward.Normalize(); camRight.Normalize();
+
+        // Direction based on Gaze + Thumbstick
+        Vector3 moveDir = (camForward * leftStick.y) + (camRight * leftStick.x);
+        if (leftStick.magnitude < 0.1f) moveDir = camForward;
+        moveDir.Normalize();
+
+        rb.linearVelocity = moveDir * (throttle * maxSpeed);
+
+        if (throttle > 0.1f && moveDir != Vector3.zero)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(moveDir);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.fixedDeltaTime * 3f);
         }
     }
 
-    // ------------------ Shooting and Recoil ------------------
-
-    void Shoot(Vector3 dir)
+    void Shoot()
     {
-        // Make sure direction is horizontal
-        dir.y = 0;
+        // 1. Spawn the projectile at the muzzle position and rotation
+        GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
 
-        dir = dir.normalized;
+        // 2. Clear self-collision so it doesn't "hit" the barrel and float
+        Collider tankCollider = GetComponent<Collider>();
+        Collider projCollider = proj.GetComponent<Collider>();
+        if (tankCollider != null && projCollider != null) Physics.IgnoreCollision(tankCollider, projCollider);
 
-        // Determine spawn position at the projectile spawn point
-        Vector3 spawnPos = projectileSpawnPoint.position;
-
-        spawnPos.y = 0f; // Force Y to 0
-
-        // Instantiate the projectile
-        GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(dir));
-
-        // Play shooting sound effect
-        if (audioSource != null && shootSound != null)
-        {
-            audioSource.PlayOneShot(shootSound);
-        }
-
-        // Apply force to the projectile
-        Rigidbody projRb = projectile.GetComponent<Rigidbody>();
+        Rigidbody projRb = proj.GetComponent<Rigidbody>();
         if (projRb != null)
         {
-            projRb.useGravity = false; //  keep it flat
-            projRb.AddForce(dir * projectileForce, ForceMode.Impulse);
-            Destroy(projectile, 2f); // Auto-destroy after 2 seconds
+            projRb.linearVelocity = Vector3.zero; // Clear any physics "lag"
+
+            // 3. APPLY FORCE (Using 'forward' ensures it follows the muzzle's blue arrow)
+            // Set 'projectileForce' to at least 1500 in the Inspector for a fast shot
+            projRb.AddForce(projectileSpawnPoint.forward * projectileForce);
         }
-
-        // Apply recoil to the player in the opposite direction
-        //rb.AddForce(-dir * recoilForce, ForceMode.Impulse);
-
-        // ------------------ Scale based on size ------------------
-        // Scale factor based on player size (x-axis)
-        float sizeFactor = transform.localScale.x;
-        // Calculate dynamic recoil force
-        float scaledRecoil = recoilForce * sizeFactor;
-        // Apply recoil
-        rb.AddForce(-dir * scaledRecoil, ForceMode.Impulse);
-
-
-
-        // Visual debug ray to show shooting direction
-        Debug.DrawRay(spawnPos, dir * 2f, Color.red, 3f);
-
-        //Reduce player size by 2% on each shot
-        transform.localScale *= 0.98f;
+        Destroy(proj, 3f);
     }
-
-    // ------------------ WASD Movement ------------------------
-
-    //  void FixedUpdate()
-    // {
-    //    float moveHorizontal = Input.GetAxis("Horizontal");
-    //   float moveVertical = Input.GetAxis("Vertical");
-
-    //   Vector3 movement = new Vector3(moveHorizontal, 0.0f, moveVertical);
-    //  rb.AddForce(movement * speed);
-
-
-    //  }
-
-    // ------------------ Pickup Collision -----------------------
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.CompareTag("Pickup"))
         {
-            // Play pickup effect at the pickup's position
-            Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
-
-            // Increase the player's size by a fixed amount
-            Vector3 increase = Vector3.one * 0.1f; // Add 0.1 to each axis
-            Vector3 newScale = transform.localScale + increase;
-
-            transform.localScale = newScale;
-
-            // Play pickup sound if available
-            if (pickupAudio != null)
-            {
-                pickupAudio.Play();
-            }
-
-            // Remove the pickup from the scene
+            if (pickupEffectPrefab) Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
+            transform.localScale += Vector3.one * 0.1f;
             Destroy(other.gameObject);
-        }
-        else if (other.gameObject.CompareTag("FireSpin"))
-        {
-            // Reduce the player's size by 30%
-            transform.localScale *= 0.7f;
-        }
-
-        else if (other.gameObject.CompareTag("SpeedPad"))
-        {
-            Vector3 boostDir = other.transform.forward;
-            rb.AddForce(boostDir * 30f, ForceMode.Impulse);
         }
     }
 }

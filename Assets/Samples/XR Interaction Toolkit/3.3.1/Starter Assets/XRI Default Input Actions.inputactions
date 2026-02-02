@@ -453,6 +453,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
+                },
+                {
+                    "name": "throttle",
+                    "type": "Value",
+                    "id": "6792d81f-bd5a-4dca-831b-f16d125a6f26",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -860,6 +869,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "Thumbstick",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c3c2976d-b66b-444f-a882-eb4333f41a1f",
+                    "path": "<XRSimulatedController>{LeftHand}/{Grip}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "throttle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e32a0094-51eb-4de5-b9e5-313ef752ff8d",
+                    "path": "<Keyboard>/0",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "throttle",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
@@ -1339,13 +1370,13 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "Grab Move",
-                    "type": "Button",
+                    "name": "Throttle Move",
+                    "type": "Value",
                     "id": "c5a6d766-d487-42ae-b293-da4749469e18",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "Axis",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -1400,7 +1431,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "Grab Move",
+                    "action": "Throttle Move",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -1521,7 +1552,7 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "Grip Position",
+                    "name": "Grip Position Turret",
                     "type": "Value",
                     "id": "defe4495-ba8f-4958-b2fb-98d889e45ac5",
                     "expectedControlType": "Vector3",
@@ -1546,6 +1577,24 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
+                },
+                {
+                    "name": "Shoot Action",
+                    "type": "Button",
+                    "id": "ceed307f-b80f-4385-8cee-cdac77efba8d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "GRIP RIGHT",
+                    "type": "Button",
+                    "id": "3f04f9ce-6a4c-47ff-a041-8320d67e93c1",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -1716,6 +1765,17 @@
                 },
                 {
                     "name": "",
+                    "id": "e4ff10a6-c96d-4a77-ac1f-2c25157945a1",
+                    "path": "<XRController>{RightHand}/pointerPosition",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Aim Position",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "2bb1158a-2d78-446b-9351-6f9b3f1364cb",
                     "path": "<MetaAimHand>{RightHand}/deviceRotation",
                     "interactions": "",
@@ -1751,6 +1811,17 @@
                     "name": "",
                     "id": "2fac2635-e015-4fb7-9578-34b85a5d5797",
                     "path": "<HoloLensHand>{RightHand}/pointer/rotation",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Aim Rotation",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "464316f7-1671-4afd-bf87-49d78ae5bb71",
+                    "path": "<XRController>{RightHand}/pointerRotation",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -1925,17 +1996,6 @@
                 },
                 {
                     "name": "",
-                    "id": "efcaf94e-8faa-439e-983b-c65f79c3b743",
-                    "path": "<XRHandDevice>{RightHand}/gripPosition",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Grip Position",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "70a747b6-46e8-4d3b-aaec-20bcab8f1dd7",
                     "path": "<XRHandDevice>{RightHand}/gripRotation",
                     "interactions": "",
@@ -1953,6 +2013,72 @@
                     "processors": "",
                     "groups": "",
                     "action": "Thumbstick",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "6b193f34-6d38-4f80-b662-e20ada35b134",
+                    "path": "*/{TriggerButton}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Shoot Action",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "45f04206-9db1-4dd5-8756-59eb6b473e56",
+                    "path": "",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Shoot Action",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "fc180119-4e62-49d8-8a6c-9c99e20b06d4",
+                    "path": "<XRController>{RightHand}/{GripPosition}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grip Position Turret",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "bbdd0ce3-863a-47fc-ac45-ab17a816b18c",
+                    "path": "",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grip Position Turret",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d7d51758-31bd-42ea-9cbc-4cab7cf7182f",
+                    "path": "<XRController>{RightHand}/{GripButton}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "GRIP RIGHT",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "0cac9cd8-af9e-4623-a35a-835c654247ec",
+                    "path": "",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "GRIP RIGHT",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

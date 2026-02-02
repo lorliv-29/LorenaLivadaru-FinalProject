@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.lorliv.tanks": {
+      "version": "file:C:/Users/livad/Documents/Tanks!/com.lorliv.tanks-0.1.0/package",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.test-framework": "1.6.0"
+      }
+    },
     "com.meta.xr.sdk.interaction": {
       "version": "83.0.1",
       "depth": 0,
@@ -212,7 +220,7 @@
     },
     "com.unity.xr.core-utils": {
       "version": "2.5.3",
-      "depth": 1,
+      "depth": 0,
       "source": "registry",
       "dependencies": {
         "com.unity.modules.xr": "1.0.0"
@@ -249,11 +257,10 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.xr.legacyinputhelpers": {
-      "version": "2.1.13",
-      "depth": 1,
+      "version": "3.0.0",
+      "depth": 0,
       "source": "registry",
       "dependencies": {
-        "com.unity.modules.vr": "1.0.0",
         "com.unity.modules.xr": "1.0.0"
       },
       "url": "https://packages.unity.com"
