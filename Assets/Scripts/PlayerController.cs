@@ -24,7 +24,7 @@ public class PlayerController : MonoBehaviour
     [Header("Projectiles")]
     [SerializeField] private Transform projectileSpawnPoint; // Barrel tip
     public GameObject projectilePrefab;
-    public float projectileForce = 1500f; // MASSIVE force for high speed
+    public float projectileForce = 1500f; // MASSIVE force 
 
     private void OnEnable()
     {
@@ -45,7 +45,7 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        // EMERGENCY DEBUG: If you squeeze the right grip, this WILL show in the console
+        //  squeeze the right grip+ debug
         float testSqueeze = turretSqueezeAction.action.ReadValue<float>();
         if (testSqueeze > 0.05f) Debug.Log($"<color=orange>TURRET SQUEEZE:</color> {testSqueeze}");
 
@@ -90,15 +90,15 @@ public class PlayerController : MonoBehaviour
         camForward.Normalize(); camRight.Normalize();
 
         // Direction based on Gaze + Thumbstick
-        Vector3 moveDir = (camForward * leftStick.y) + (camRight * leftStick.x);
-        if (leftStick.magnitude < 0.1f) moveDir = camForward;
-        moveDir.Normalize();
+      Vector3 moveDir = (camForward * leftStick.y) + (camRight * leftStick.x);
+       if (leftStick.magnitude < 0.1f) moveDir = camForward;
+      moveDir.Normalize();
 
-        rb.linearVelocity = moveDir * (throttle * maxSpeed);
+     rb.linearVelocity = moveDir * (throttle * maxSpeed);
 
         if (throttle > 0.1f && moveDir != Vector3.zero)
-        {
-            Quaternion targetRot = Quaternion.LookRotation(moveDir);
+      {
+          Quaternion targetRot = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.fixedDeltaTime * 3f);
         }
     }

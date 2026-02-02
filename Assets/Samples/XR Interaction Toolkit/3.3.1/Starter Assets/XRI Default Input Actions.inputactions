@@ -1364,7 +1364,7 @@
                     "name": "Move",
                     "type": "Value",
                     "id": "9693e25f-8a4f-4aed-842f-3961243c69a1",
-                    "expectedControlType": "Vector2",
+                    "expectedControlType": "Vector3",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
@@ -2052,6 +2052,39 @@
                 {
                     "name": "",
                     "id": "bbdd0ce3-863a-47fc-ac45-ab17a816b18c",
+                    "path": "<TrackedDevice>/{GripPosition}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grip Position Turret",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "892d00fb-1d21-4919-98da-2da422bbbf90",
+                    "path": "<QuestTouchPlusController>/{GripPosition}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grip Position Turret",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "045cfc2a-4cc9-4268-8cd9-628b09bbdb42",
+                    "path": "<QuestProTouchController>{LeftHand}/{GripPosition}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grip Position Turret",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2bf19112-fa82-4e8c-a0ff-7ccb45a00797",
                     "path": "",
                     "interactions": "",
                     "processors": "",
@@ -2561,7 +2594,7 @@
                     "name": "Grab Move",
                     "type": "Button",
                     "id": "cfb29d37-3db0-4e5d-a73b-7d48a19e279e",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
