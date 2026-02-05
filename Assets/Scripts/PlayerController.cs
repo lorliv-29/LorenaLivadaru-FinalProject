@@ -14,7 +14,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Combat (Right Hand)")]
     public InputActionReference interactAction;
-    public Transform projectileSpawnPoint; // Drag the 'MuzzleTip' here
+    public Transform projectileSpawnPoint; // Drag the 'MuzzleTip' empty object here
 
     [Header("Projectiles")]
     public GameObject projectilePrefab;
@@ -30,17 +30,17 @@ public class PlayerController : MonoBehaviour
     {
         characterController = GetComponent<CharacterController>();
 
-        // Force-start the game logic immediately
+        // Bypass the start panel by forcing the game state to 'Started'
         if (gameManager != null) gameManager.StartGame();
     }
 
     void Update()
     {
-        // 1. MOVEMENT: Standard FPS-style thumbstick move
+        // 1. MOVEMENT: Handled every frame via CharacterController.Move
         HandleMovement();
 
-        // 2. SHOOTING: Fire from the MuzzleTip
-        if (interactAction.action.WasPressedThisFrame())
+        // 2. SHOOTING: Check for trigger press
+        if (interactAction != null && interactAction.action.WasPressedThisFrame())
         {
             Shoot();
         }
@@ -48,13 +48,16 @@ public class PlayerController : MonoBehaviour
 
     void HandleMovement()
     {
-        if (!gameManager || !gameManager.IsGameStarted()) return;
+        // Safety check for GameManager
+        if (gameManager != null && !gameManager.IsGameStarted()) return;
 
+        // Read the Vector2 input from the thumbstick
         Vector2 stickInput = moveAction.action.ReadValue<Vector2>();
 
-        // Move relative to the player's facing direction (Thumbstick only)
+        // Calculate direction relative to where the XR Origin is facing
         Vector3 moveDir = transform.forward * stickInput.y + transform.right * stickInput.x;
 
+        // Character Controllers use .Move() and require Time.deltaTime to be smooth
         characterController.Move(moveDir * maxSpeed * Time.deltaTime);
     }
 
@@ -62,20 +65,28 @@ public class PlayerController : MonoBehaviour
     {
         if (projectileSpawnPoint == null) return;
 
-        // 1. Spawn at the exact tip of your hand-held object
+        // Create the projectile at the tip's position and rotation
         GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
+
+        // Tell the Character Controller (your body) to ignore the projectile's collider
+        // This prevents the "sticky" effect where the orb hits your own body
+        Collider projCollider = proj.GetComponent<Collider>();
+        if (characterController != null && projCollider != null)
+        {
+            Physics.IgnoreCollision(characterController, projCollider);
+        }
 
         Rigidbody projRb = proj.GetComponent<Rigidbody>();
         if (projRb != null)
         {
-            projRb.linearVelocity = Vector3.zero;
-            // 2. Launch forward along the MuzzleTip's Blue Axis
+            projRb.linearVelocity = Vector3.zero; // Clear any inherited velocity
+
+            // LAUNCH: Follows the Blue Arrow (Z-axis) of the MuzzleTip in 3D space
+            // This allows for up, down, and diagonal shooting
             projRb.AddForce(projectileSpawnPoint.forward * projectileForce, ForceMode.Impulse);
         }
 
-        // Mechanic: Shrink slightly with every shot
-        //transform.localScale *= 0.98f;
-
+        // Cleanup: Remove orb after 3 seconds
         Destroy(proj, 3f);
     }
 
@@ -85,7 +96,7 @@ public class PlayerController : MonoBehaviour
         {
             if (pickupEffectPrefab) Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
 
-            // Mechanic: Grow when picking up items
+            // Grow mechanic: Scale up slightly when hitting a pickup
             transform.localScale += Vector3.one * 0.1f;
             Destroy(other.gameObject);
         }
