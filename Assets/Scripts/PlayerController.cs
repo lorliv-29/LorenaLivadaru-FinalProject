@@ -5,20 +5,24 @@ using UnityEngine.InputSystem;
 public class PlayerController : MonoBehaviour
 {
     private CharacterController characterController;
+    private Camera mainCamera;
+    private Vector3 currentVelocity;
+
     public GameManager gameManager;
     public GameObject pickupEffectPrefab;
 
-    [Header("Movement (Left Thumbstick)")]
+    [Header("Movement Settings")]
     public InputActionReference moveAction;
-    public float maxSpeed = 4f;
+    public float maxSpeed = 7f;
+    public float acceleration = 12f;
+    public float turnSpeed = 100f;    // Increased for manual rotation
+    public float hoverHeight = 1.0f;
 
-    [Header("Combat (Right Hand)")]
+    [Header("Combat Settings")]
     public InputActionReference interactAction;
-    public Transform projectileSpawnPoint; // Drag the 'MuzzleTip' empty object here
-
-    [Header("Projectiles")]
+    public Transform projectileSpawnPoint;
     public GameObject projectilePrefab;
-    public float projectileForce = 25f;
+    public float projectileForce = 30f;
 
     private void OnEnable()
     {
@@ -29,64 +33,89 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         characterController = GetComponent<CharacterController>();
+        mainCamera = Camera.main;
 
-        // Bypass the start panel by forcing the game state to 'Started'
         if (gameManager != null) gameManager.StartGame();
     }
 
     void Update()
     {
-        // 1. MOVEMENT: Handled every frame via CharacterController.Move
-        HandleMovement();
+        // FIX: Safety check to stop "Inactive Controller" error
+        if (characterController == null || !characterController.enabled || !gameObject.activeInHierarchy)
+            return;
 
-        // 2. SHOOTING: Check for trigger press
+        // SCALE SAFETY: Prevents the AABB/Finite crash
+        if (transform.localScale.x < 0.1f) transform.localScale = Vector3.one;
+
+        SyncCapsuleToHead();
+
+        if (gameManager != null && gameManager.IsGameStarted())
+        {
+            // The function name must match exactly here!
+            HandleTankMovement();
+        }
+
         if (interactAction != null && interactAction.action.WasPressedThisFrame())
         {
             Shoot();
         }
     }
 
-    void HandleMovement()
+    void HandleTankMovement()
     {
-        // Safety check for GameManager
-        if (gameManager != null && !gameManager.IsGameStarted()) return;
-
-        // Read the Vector2 input from the thumbstick
         Vector2 stickInput = moveAction.action.ReadValue<Vector2>();
 
-        // Calculate direction relative to where the XR Origin is facing
-        Vector3 moveDir = transform.forward * stickInput.y + transform.right * stickInput.x;
+        // DECOUPLED MOVEMENT: Head direction is ignored for steering
+        if (stickInput.magnitude > 0.1f)
+        {
+            // 1. ROTATION: Left/Right on stick rotates the TANK, not the view
+            float rotationAmount = stickInput.x * turnSpeed * Time.deltaTime;
+            transform.Rotate(0, rotationAmount, 0);
 
-        // Character Controllers use .Move() and require Time.deltaTime to be smooth
-        characterController.Move(moveDir * maxSpeed * Time.deltaTime);
+            // 2. FORWARD: Pushing Forward moves the tank along its own forward axis
+            Vector3 moveDir = transform.forward * stickInput.y * maxSpeed;
+            currentVelocity = Vector3.Lerp(currentVelocity, moveDir, acceleration * Time.deltaTime);
+        }
+        else
+        {
+            currentVelocity = Vector3.Lerp(currentVelocity, Vector3.zero, acceleration * Time.deltaTime);
+        }
+
+        // HOVER & GRAVITY: Keeps the legs from snagging on the floor
+        float vertical = -9.81f;
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, Vector3.down, out hit, hoverHeight + 0.2f))
+        {
+            float error = hoverHeight - hit.distance;
+            vertical = error * 15f;
+        }
+
+        Vector3 finalMove = currentVelocity + (Vector3.up * vertical);
+        characterController.Move(finalMove * Time.deltaTime);
+    }
+
+    void SyncCapsuleToHead()
+    {
+        if (mainCamera == null) return;
+        float headHeight = Mathf.Clamp(mainCamera.transform.localPosition.y, 1f, 2.5f);
+        characterController.height = headHeight;
+        Vector3 newCenter = mainCamera.transform.localPosition;
+        newCenter.y = headHeight / 2f;
+        characterController.center = newCenter;
     }
 
     void Shoot()
     {
-        if (projectileSpawnPoint == null) return;
+        if (projectileSpawnPoint == null || projectilePrefab == null) return;
 
-        // Create the projectile at the tip's position and rotation
         GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
-
-        // Tell the Character Controller (your body) to ignore the projectile's collider
-        // This prevents the "sticky" effect where the orb hits your own body
-        Collider projCollider = proj.GetComponent<Collider>();
-        if (characterController != null && projCollider != null)
+        Rigidbody rb = proj.GetComponent<Rigidbody>();
+        if (rb != null)
         {
-            Physics.IgnoreCollision(characterController, projCollider);
+            rb.linearVelocity = Vector3.zero;
+            // Impulse follows the Muzzle's forward (for diagonal shots)
+            rb.AddForce(projectileSpawnPoint.forward * projectileForce, ForceMode.Impulse);
         }
-
-        Rigidbody projRb = proj.GetComponent<Rigidbody>();
-        if (projRb != null)
-        {
-            projRb.linearVelocity = Vector3.zero; // Clear any inherited velocity
-
-            // LAUNCH: Follows the Blue Arrow (Z-axis) of the MuzzleTip in 3D space
-            // This allows for up, down, and diagonal shooting
-            projRb.AddForce(projectileSpawnPoint.forward * projectileForce, ForceMode.Impulse);
-        }
-
-        // Cleanup: Remove orb after 3 seconds
         Destroy(proj, 3f);
     }
 
@@ -95,9 +124,7 @@ public class PlayerController : MonoBehaviour
         if (other.gameObject.CompareTag("Pickup"))
         {
             if (pickupEffectPrefab) Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
-
-            // Grow mechanic: Scale up slightly when hitting a pickup
-            transform.localScale += Vector3.one * 0.1f;
+            if (transform.localScale.x < 3.0f) transform.localScale += Vector3.one * 0.1f;
             Destroy(other.gameObject);
         }
     }
