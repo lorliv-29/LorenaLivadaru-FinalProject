@@ -106,19 +106,33 @@ public class PlayerController : MonoBehaviour
 
     void Shoot()
     {
-        if (projectileSpawnPoint == null || projectilePrefab == null) return;
+        // Safety check: ensure you haven't accidentally assigned the XR Origin here
+        if (projectileSpawnPoint == null || projectileSpawnPoint == this.transform)
+        {
+            Debug.LogError("The Projectile Spawn Point is either missing or assigned to the Player itself!");
+            return;
+        }
 
-        GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
+        // 1. Position: Force world-space coordinates
+        Vector3 spawnPosition = projectileSpawnPoint.position;
+
+        // 2. Rotation: Ensure it uses the Blue Arrow (Forward) of the muzzle
+        Quaternion spawnRotation = projectileSpawnPoint.rotation;
+
+        // 3. Spawn the object
+        GameObject proj = Instantiate(projectilePrefab, spawnPosition, spawnRotation);
+
+        // 4. Ejection Force:
         Rigidbody rb = proj.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.linearVelocity = Vector3.zero;
-            // Impulse follows the Muzzle's forward (for diagonal shots)
+            // If it's firing behind you, try changing .forward to -.forward here to test orientation
             rb.AddForce(projectileSpawnPoint.forward * projectileForce, ForceMode.Impulse);
         }
+
         Destroy(proj, 3f);
     }
-
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.CompareTag("Pickup"))
