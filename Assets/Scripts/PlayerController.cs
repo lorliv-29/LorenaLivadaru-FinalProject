@@ -18,18 +18,21 @@ public class PlayerController : MonoBehaviour
     public float turnSpeed = 100f;
     public float hoverHeight = 1.0f;
 
+    [Header("VR Throttle")]
+    public Transform throttleLever; // The 3D Lever handle
+    public float minLeverAngle = -45f;
+    public float maxLeverAngle = 45f;
+    private float throttleMultiplier = 0f; // Starts at 0 (Stopped)
+
     // --- TANGIBLE BRIDGE VARIABLES ---
     private float extX = 0;
     private float extY = 0;
 
-    // This allows the WebSocket script to feed in joystick data
     public void UpdateExternalInput(float x, float y)
     {
         extX = x * -1f;
         extY = y;
-        if (x != 0 || y != 0) Debug.Log($"Tank received input: X={x}, Y={y}");
     }
-    // ----------------------------------
 
     [Header("Combat Settings")]
     public InputActionReference interactAction;
@@ -38,8 +41,8 @@ public class PlayerController : MonoBehaviour
     public float projectileForce = 30f;
 
     [Header("Cockpit Visuals")]
-    public Transform cockpitJoystickHandle; // Drag the 3D stick handle here
-    public float maxVisualTilt = 20f; // Degrees it can tilt
+    public Transform cockpitJoystickHandle;
+    public float maxVisualTilt = 20f;
 
     private void OnEnable()
     {
@@ -51,7 +54,6 @@ public class PlayerController : MonoBehaviour
     {
         characterController = GetComponent<CharacterController>();
         mainCamera = Camera.main;
-
         if (gameManager != null) gameManager.StartGame();
     }
 
@@ -60,15 +62,17 @@ public class PlayerController : MonoBehaviour
         if (characterController == null || !characterController.enabled || !gameObject.activeInHierarchy)
             return;
 
-        if (transform.localScale.x < 0.1f) transform.localScale = Vector3.one;
-
         SyncCapsuleToHead();
 
         if (gameManager != null && gameManager.IsGameStarted())
         {
+            // Calculate the speed multiplier from the VR lever first
+            CalculateThrottleFromLever();
+
+            // Move the tank
             HandleTankMovement();
 
-            // --- ADD THIS LINE HERE ---
+            // Tilt the cockpit joystick based on ESP32 data
             UpdateJoystickVisuals();
         }
 
@@ -80,21 +84,22 @@ public class PlayerController : MonoBehaviour
 
     void HandleTankMovement()
     {
-        // 1. INPUT SOURCE: Use ESP32 values if they exist, otherwise fallback to VR controllers
         Vector2 stickInput = new Vector2(extX, extY);
 
+        // Fallback to VR Controllers if ESP32 is centered/disconnected
         if (stickInput.magnitude < 0.05f && moveAction != null)
         {
             stickInput = moveAction.action.ReadValue<Vector2>();
         }
 
-        // 2. ROTATION: Decoupled from head view
         if (stickInput.magnitude > 0.1f)
         {
             float rotationAmount = stickInput.x * turnSpeed * Time.deltaTime;
             transform.Rotate(0, rotationAmount, 0);
 
-            Vector3 moveDir = transform.forward * stickInput.y * maxSpeed;
+            // --- APPLIED THROTTLE MULTIPLIER HERE ---
+            // The maxSpeed is now capped by the VR Lever (0, 0.5, or 1.0)
+            Vector3 moveDir = transform.forward * stickInput.y * (maxSpeed * throttleMultiplier);
             currentVelocity = Vector3.Lerp(currentVelocity, moveDir, acceleration * Time.deltaTime);
         }
         else
@@ -102,7 +107,7 @@ public class PlayerController : MonoBehaviour
             currentVelocity = Vector3.Lerp(currentVelocity, Vector3.zero, acceleration * Time.deltaTime);
         }
 
-        // 3. GRAVITY & HOVER
+        // Gravity & Hover Physics
         float vertical = -9.81f;
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, hoverHeight + 0.2f))
@@ -119,14 +124,25 @@ public class PlayerController : MonoBehaviour
     {
         if (cockpitJoystickHandle != null)
         {
-            // Calculate tilt: Vertical moves X axis, Horizontal moves Z axis
-            // We use -extX because tilting the stick right usually means a negative Z rotation in Unity
             float tiltX = extY * maxVisualTilt;
             float tiltZ = -extX * maxVisualTilt;
-
-            // Apply the rotation smoothly
             cockpitJoystickHandle.localRotation = Quaternion.Euler(tiltX, 0, tiltZ);
         }
+    }
+
+    void CalculateThrottleFromLever()
+    {
+        if (throttleLever == null) return;
+
+        float currentAngle = throttleLever.localEulerAngles.x;
+        if (currentAngle > 180) currentAngle -= 360;
+
+        float rawThrottle = Mathf.InverseLerp(minLeverAngle, maxLeverAngle, currentAngle);
+
+        // Digital Snap: 0% / 50% / 100%
+        if (rawThrottle < 0.2f) throttleMultiplier = 0f;
+        else if (rawThrottle < 0.7f) throttleMultiplier = 0.5f;
+        else throttleMultiplier = 1f;
     }
 
     void SyncCapsuleToHead()
@@ -139,37 +155,16 @@ public class PlayerController : MonoBehaviour
         characterController.center = newCenter;
     }
 
-    // UPDATED: Now 'public' so the WebSocket script can call it from the ESP32 button
     public void Shoot()
     {
-        if (projectileSpawnPoint == null || projectileSpawnPoint == this.transform)
-        {
-            Debug.LogError("Projectile Spawn Point is missing or assigned to the Player itself!");
-            return;
-        }
-
-        Vector3 spawnPosition = projectileSpawnPoint.position;
-        Quaternion spawnRotation = projectileSpawnPoint.rotation;
-
-        GameObject proj = Instantiate(projectilePrefab, spawnPosition, spawnRotation);
-
+        if (projectileSpawnPoint == null) return;
+        GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
         Rigidbody rb = proj.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.linearVelocity = Vector3.zero;
             rb.AddForce(projectileSpawnPoint.forward * projectileForce, ForceMode.Impulse);
         }
-
         Destroy(proj, 3f);
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.gameObject.CompareTag("Pickup"))
-        {
-            if (pickupEffectPrefab) Instantiate(pickupEffectPrefab, other.transform.position, Quaternion.identity);
-            if (transform.localScale.x < 3.0f) transform.localScale += Vector3.one * 0.1f;
-            Destroy(other.gameObject);
-        }
     }
 }
