@@ -15,14 +15,31 @@ public class PlayerController : MonoBehaviour
     public InputActionReference moveAction;
     public float maxSpeed = 7f;
     public float acceleration = 12f;
-    public float turnSpeed = 100f;    // Increased for manual rotation
+    public float turnSpeed = 100f;
     public float hoverHeight = 1.0f;
+
+    // --- TANGIBLE BRIDGE VARIABLES ---
+    private float extX = 0;
+    private float extY = 0;
+
+    // This allows the WebSocket script to feed in joystick data
+    public void UpdateExternalInput(float x, float y)
+    {
+        extX = x * -1f;
+        extY = y;
+        if (x != 0 || y != 0) Debug.Log($"Tank received input: X={x}, Y={y}");
+    }
+    // ----------------------------------
 
     [Header("Combat Settings")]
     public InputActionReference interactAction;
     public Transform projectileSpawnPoint;
     public GameObject projectilePrefab;
     public float projectileForce = 30f;
+
+    [Header("Cockpit Visuals")]
+    public Transform cockpitJoystickHandle; // Drag the 3D stick handle here
+    public float maxVisualTilt = 20f; // Degrees it can tilt
 
     private void OnEnable()
     {
@@ -40,19 +57,19 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
-        // FIX: Safety check to stop "Inactive Controller" error
         if (characterController == null || !characterController.enabled || !gameObject.activeInHierarchy)
             return;
 
-        // SCALE SAFETY: Prevents the AABB/Finite crash
         if (transform.localScale.x < 0.1f) transform.localScale = Vector3.one;
 
         SyncCapsuleToHead();
 
         if (gameManager != null && gameManager.IsGameStarted())
         {
-            // The function name must match exactly here!
             HandleTankMovement();
+
+            // --- ADD THIS LINE HERE ---
+            UpdateJoystickVisuals();
         }
 
         if (interactAction != null && interactAction.action.WasPressedThisFrame())
@@ -63,16 +80,20 @@ public class PlayerController : MonoBehaviour
 
     void HandleTankMovement()
     {
-        Vector2 stickInput = moveAction.action.ReadValue<Vector2>();
+        // 1. INPUT SOURCE: Use ESP32 values if they exist, otherwise fallback to VR controllers
+        Vector2 stickInput = new Vector2(extX, extY);
 
-        // DECOUPLED MOVEMENT: Head direction is ignored for steering
+        if (stickInput.magnitude < 0.05f && moveAction != null)
+        {
+            stickInput = moveAction.action.ReadValue<Vector2>();
+        }
+
+        // 2. ROTATION: Decoupled from head view
         if (stickInput.magnitude > 0.1f)
         {
-            // 1. ROTATION: Left/Right on stick rotates the TANK, not the view
             float rotationAmount = stickInput.x * turnSpeed * Time.deltaTime;
             transform.Rotate(0, rotationAmount, 0);
 
-            // 2. FORWARD: Pushing Forward moves the tank along its own forward axis
             Vector3 moveDir = transform.forward * stickInput.y * maxSpeed;
             currentVelocity = Vector3.Lerp(currentVelocity, moveDir, acceleration * Time.deltaTime);
         }
@@ -81,7 +102,7 @@ public class PlayerController : MonoBehaviour
             currentVelocity = Vector3.Lerp(currentVelocity, Vector3.zero, acceleration * Time.deltaTime);
         }
 
-        // HOVER & GRAVITY: Keeps the legs from snagging on the floor
+        // 3. GRAVITY & HOVER
         float vertical = -9.81f;
         RaycastHit hit;
         if (Physics.Raycast(transform.position, Vector3.down, out hit, hoverHeight + 0.2f))
@@ -94,6 +115,20 @@ public class PlayerController : MonoBehaviour
         characterController.Move(finalMove * Time.deltaTime);
     }
 
+    void UpdateJoystickVisuals()
+    {
+        if (cockpitJoystickHandle != null)
+        {
+            // Calculate tilt: Vertical moves X axis, Horizontal moves Z axis
+            // We use -extX because tilting the stick right usually means a negative Z rotation in Unity
+            float tiltX = extY * maxVisualTilt;
+            float tiltZ = -extX * maxVisualTilt;
+
+            // Apply the rotation smoothly
+            cockpitJoystickHandle.localRotation = Quaternion.Euler(tiltX, 0, tiltZ);
+        }
+    }
+
     void SyncCapsuleToHead()
     {
         if (mainCamera == null) return;
@@ -104,35 +139,30 @@ public class PlayerController : MonoBehaviour
         characterController.center = newCenter;
     }
 
-    void Shoot()
+    // UPDATED: Now 'public' so the WebSocket script can call it from the ESP32 button
+    public void Shoot()
     {
-        // Safety check: ensure you haven't accidentally assigned the XR Origin here
         if (projectileSpawnPoint == null || projectileSpawnPoint == this.transform)
         {
-            Debug.LogError("The Projectile Spawn Point is either missing or assigned to the Player itself!");
+            Debug.LogError("Projectile Spawn Point is missing or assigned to the Player itself!");
             return;
         }
 
-        // 1. Position: Force world-space coordinates
         Vector3 spawnPosition = projectileSpawnPoint.position;
-
-        // 2. Rotation: Ensure it uses the Blue Arrow (Forward) of the muzzle
         Quaternion spawnRotation = projectileSpawnPoint.rotation;
 
-        // 3. Spawn the object
         GameObject proj = Instantiate(projectilePrefab, spawnPosition, spawnRotation);
 
-        // 4. Ejection Force:
         Rigidbody rb = proj.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.linearVelocity = Vector3.zero;
-            // If it's firing behind you, try changing .forward to -.forward here to test orientation
             rb.AddForce(projectileSpawnPoint.forward * projectileForce, ForceMode.Impulse);
         }
 
         Destroy(proj, 3f);
     }
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.gameObject.CompareTag("Pickup"))
