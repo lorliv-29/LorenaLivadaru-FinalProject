@@ -13,6 +13,7 @@
     "com.unity.xr.interaction.toolkit": "3.3.1",
     "com.unity.xr.legacyinputhelpers": "3.0.0",
     "com.unity.xr.management": "4.5.4",
+    "com.unity.xr.meta-openxr": "2.4.0",
     "com.unity.xr.openxr": "1.16.1",
     "se.su.dsv.extralitylab.unity": "https://gitea.dsv.su.se/ExtralityLab/se.su.dsv.extralitylab.unity.git",
     "com.unity.modules.accessibility": "1.0.0",

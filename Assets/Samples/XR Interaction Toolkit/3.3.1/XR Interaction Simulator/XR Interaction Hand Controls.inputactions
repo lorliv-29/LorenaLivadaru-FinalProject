@@ -1,4 +1,5 @@
 {
+    "version": 1,
     "name": "XR Interaction Hand Controls",
     "maps": [
         {
@@ -9,7 +10,7 @@
                     "name": "Poke",
                     "type": "Button",
                     "id": "40eda730-1343-4304-a541-d7c035370ce5",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -18,7 +19,7 @@
                     "name": "Pinch",
                     "type": "Button",
                     "id": "34056e04-d03d-4802-982b-a9972fd692ff",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -27,7 +28,7 @@
                     "name": "Grab",
                     "type": "Button",
                     "id": "07d064b1-f208-4c9f-bd5a-2620a10e7bab",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -36,7 +37,7 @@
                     "name": "Thumb",
                     "type": "Button",
                     "id": "cc02894b-62a0-483f-8d1b-87b399099928",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -45,7 +46,7 @@
                     "name": "Open",
                     "type": "Button",
                     "id": "0221ceea-2049-4516-a5e4-23aab7d2185e",
-                    "expectedControlType": "Button",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -124,6 +125,34 @@
                     "processors": "",
                     "groups": "",
                     "action": "Open",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "New action map",
+            "id": "96714982-6ffa-4e99-9b72-877b1fe48498",
+            "actions": [
+                {
+                    "name": "New action",
+                    "type": "Button",
+                    "id": "596feb1b-70c0-4f17-aea7-51469d8a357d",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "c77900f5-cda7-4314-a967-e5790bd693c6",
+                    "path": "",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "New action",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
