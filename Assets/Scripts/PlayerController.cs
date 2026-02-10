@@ -86,7 +86,7 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 stickInput = new Vector2(extX, extY);
 
-        // Fallback to VR Controllers if ESP32 is centered/disconnected
+        // Fallback to VR Controllers
         if (stickInput.magnitude < 0.05f && moveAction != null)
         {
             stickInput = moveAction.action.ReadValue<Vector2>();
@@ -94,12 +94,19 @@ public class PlayerController : MonoBehaviour
 
         if (stickInput.magnitude > 0.1f)
         {
+            // 1. ROTATION (Works regardless of lever)
             float rotationAmount = stickInput.x * turnSpeed * Time.deltaTime;
             transform.Rotate(0, rotationAmount, 0);
 
-            // --- APPLIED THROTTLE MULTIPLIER HERE ---
-            // The maxSpeed is now capped by the VR Lever (0, 0.5, or 1.0)
-            Vector3 moveDir = transform.forward * stickInput.y * (maxSpeed * throttleMultiplier);
+            // 2. SCALE MULTIPLIER (For the Shrink Mechanic)
+            // If your tank is at 0.1 scale, you move 10x slower.
+            float scaleMultiplier = transform.localScale.x;
+
+            // 3. FORWARD MOVEMENT
+            // Ensure throttleMultiplier isn't 0 during testing! 
+            // For a quick fix, you can change 'throttleMultiplier' to '1f' in Start()
+            Vector3 moveDir = transform.forward * stickInput.y * (maxSpeed * throttleMultiplier * scaleMultiplier);
+
             currentVelocity = Vector3.Lerp(currentVelocity, moveDir, acceleration * Time.deltaTime);
         }
         else
@@ -107,15 +114,8 @@ public class PlayerController : MonoBehaviour
             currentVelocity = Vector3.Lerp(currentVelocity, Vector3.zero, acceleration * Time.deltaTime);
         }
 
-        // Gravity & Hover Physics
-        float vertical = -9.81f;
-        RaycastHit hit;
-        if (Physics.Raycast(transform.position, Vector3.down, out hit, hoverHeight + 0.2f))
-        {
-            float error = hoverHeight - hit.distance;
-            vertical = error * 15f;
-        }
-
+        // Apply movement via CharacterController
+        float vertical = -9.81f; // Simple gravity
         Vector3 finalMove = currentVelocity + (Vector3.up * vertical);
         characterController.Move(finalMove * Time.deltaTime);
     }
