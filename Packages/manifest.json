@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "com.lorliv.tanks": "file:C:/Users/livad/Documents/Tanks!/com.lorliv.tanks-0.1.0/package",
-    "com.meta.xr.sdk.interaction": "83.0.1",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.cinemachine": "3.1.5",
     "com.unity.ide.visualstudio": "2.0.25",

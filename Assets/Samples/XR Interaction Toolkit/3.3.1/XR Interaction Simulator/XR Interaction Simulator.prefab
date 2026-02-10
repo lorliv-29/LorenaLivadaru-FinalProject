@@ -1033,8 +1033,8 @@ MonoBehaviour:
         m_Interactions: 
         m_SingletonActionBindings: []
         m_Flags: 0
-      m_InputActionReferencePerformed: {fileID: -4373459253818063952, guid: b72ab2a46d9094be38774d023beb4d34, type: 3}
-      m_InputActionReferenceValue: {fileID: -4373459253818063952, guid: b72ab2a46d9094be38774d023beb4d34, type: 3}
+      m_InputActionReferencePerformed: {fileID: 0}
+      m_InputActionReferenceValue: {fileID: 0}
       m_ObjectReferenceObject: {fileID: 0}
       m_ManualPerformed: 0
       m_ManualValue: 0
