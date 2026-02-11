@@ -54,7 +54,7 @@ public class PlayerController : MonoBehaviour
         characterController = GetComponent<CharacterController>();
         mainCamera = Camera.main;
 
-        if (gameManager != null) gameManager.StartGame();
+       // if (gameManager != null) gameManager.StartGame();
     }
 
     void Update()

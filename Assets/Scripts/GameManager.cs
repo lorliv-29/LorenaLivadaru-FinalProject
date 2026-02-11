@@ -1,71 +1,116 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
+    [Header("UI Panels")]
     public GameObject startPanel;
     public GameObject gameOverPanel;
     public GameObject gameUIPanel;
     public TMP_InputField nameInputField;
-    public GameObject leaderboardPanel;             // Assign in Inspector
-    public Transform leaderboardContentParent;      // VerticalLayoutGroup container
-    public GameObject scoreEntryPrefab;             // TMP_Text prefab (deactivated by default)
+    public GameObject leaderboardPanel;
+    public Transform leaderboardContentParent;
+    public GameObject scoreEntryPrefab;
+
+    [Header("Race UI")]
+    public TextMeshProUGUI timerText;       // Displays current race time
+    public TextMeshProUGUI lapText;         // Displays current lap number
+    public TextMeshProUGUI bestTimeText;    // Displays best lap time
+
+    [Header("Audio")]
+    public AudioSource backgroundMusic;
+
+    // --- RACE DATA ---
+    private float raceTimer = 0f;
+    private float bestLapTime = float.MaxValue;
+    private int currentLap = 0;
     private string playerName;
-    public AudioSource backgroundMusic; // assign in Inspector
-
-   //-----------LIFE BAR------------------
-    public Transform player;       
-    public Image lifeBarFill;    
-    public float fullSize = 2f; //player scale starts at 2
-    public float minSize = 0.5f;
-
-
-
-    private bool isGameStarted = false; 
+    private bool isGameStarted = false;
     private bool isGameOver = false;
 
-    public int currentLap = 0;             // Current lap count
-    public TextMeshProUGUI lapText;        // Reference to UI text that displays the lap coun
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         ShowStart();
-
         CsvLogger.Instance.StartLogger();
+
+        if (bestTimeText != null) bestTimeText.text = "Best: --:--";
     }
 
     public void StartGame()
     {
         isGameStarted = true;
         isGameOver = false;
+        raceTimer = 0f;
+        currentLap = 1; // Start on Lap 1
 
-        startPanel.SetActive(false); // Hide start panel
-        gameOverPanel.SetActive(false); // Hide game over panel
-        gameUIPanel.SetActive(true); // Show game UI panel
+        startPanel.SetActive(false);
+        gameOverPanel.SetActive(false);
+        gameUIPanel.SetActive(true);
 
-        playerName = nameInputField.text;
-        if (string.IsNullOrWhiteSpace(playerName))
-        {
-            playerName = "Anonymous";
-        }
-        // Start background music if assigned
+        playerName = string.IsNullOrWhiteSpace(nameInputField.text) ? "Anonymous" : nameInputField.text;
+
         if (backgroundMusic != null && !backgroundMusic.isPlaying)
-        {
             backgroundMusic.Play();
 
-            Debug.Log("Background music started!");
+        if (lapText != null) lapText.text = "Lap: " + currentLap;
 
+        CsvLogger.LogEvent("Game Start", System.DateTime.Now.ToString("HH:mm:ss"));
+        CsvLogger.LogEvent("Player Name", playerName);
+    }
+
+    void Update()
+    {
+        if (isGameStarted && !isGameOver)
+        {
+            // Update the race timer
+            raceTimer += Time.deltaTime;
+            UpdateTimerUI();
+        }
+    }
+
+    private void UpdateTimerUI()
+    {
+        if (timerText != null)
+        {
+            // Formats time to 00:00.00
+            int minutes = Mathf.FloorToInt(raceTimer / 60f);
+            int seconds = Mathf.FloorToInt(raceTimer % 60f);
+            float fraction = (raceTimer * 100f) % 100f;
+            timerText.text = string.Format("{0:00}:{1:00}.{2:00}", minutes, seconds, fraction);
+        }
+    }
+
+    public void OnLapCompleted()
+    {
+        // Check if this was the fastest lap
+        if (raceTimer < bestLapTime)
+        {
+            bestLapTime = raceTimer;
+            UpdateBestTimeUI();
         }
 
-        Debug.Log("Game Started");
+        CsvLogger.LogEvent("Lap Finished", currentLap.ToString());
+        CsvLogger.LogEvent("Lap Time", timerText.text);
 
-        CsvLogger.LogEvent("Game Start Time", System.DateTime.Now.ToString("HH:mm:ss"));
-        CsvLogger.LogEvent("Start Player Scale", player.localScale.ToString("F2"));
-        CsvLogger.LogEvent("Player Name", playerName);
+        currentLap++;
+        raceTimer = 0f; // Reset timer for the next lap
+
+        if (lapText != null) lapText.text = "Lap: " + currentLap;
+    }
+
+    private void UpdateBestTimeUI()
+    {
+        if (bestTimeText != null)
+        {
+            int minutes = Mathf.FloorToInt(bestLapTime / 60f);
+            int seconds = Mathf.FloorToInt(bestLapTime % 60f);
+            float fraction = (bestLapTime * 100f) % 100f;
+            bestTimeText.text = "Best: " + string.Format("{0:00}:{1:00}.{2:00}", minutes, seconds, fraction);
+        }
     }
 
     public void GameOver()
@@ -73,119 +118,52 @@ public class GameManager : MonoBehaviour
         if (isGameOver) return;
         isGameOver = true;
 
-        // Add score
-        ScoreManager.AddScore(playerName, currentLap);
+        // Add the BEST lap time to the leaderboard instead of total laps
+        ScoreManager.AddScore(playerName, Mathf.FloorToInt(bestLapTime));
 
-        // Hide all panels
-        startPanel.SetActive(false);
         gameUIPanel.SetActive(false);
-
-        // Show leaderboard panel and fill entries
         ShowLeaderboard();
-        // Show game over panel
         gameOverPanel.SetActive(true);
 
-        // Pause game AFTER UI finishes rendering
         StartCoroutine(PauseAfterUI());
-
-        CsvLogger.LogEvent("Game Over Time", System.DateTime.Now.ToString("HH:mm:ss"));
-        CsvLogger.LogEvent("Total Laps Completed", currentLap.ToString());
-        Debug.Log("Game Over triggered!");
+        CsvLogger.LogEvent("Race Over", System.DateTime.Now.ToString("HH:mm:ss"));
     }
 
+    // Leaderboard and logic remains mostly the same, but uses Best Time
     void ShowLeaderboard()
     {
         leaderboardPanel.SetActive(true);
+        foreach (Transform child in leaderboardContentParent) Destroy(child.gameObject);
 
-        // Remove old entries
-        foreach (Transform child in leaderboardContentParent)
-        {
-            Destroy(child.gameObject);
-        }
-
-        // Get saved scores
         var scores = ScoreManager.GetScoreStrings();
-
-        // Add a text entry for each score
         foreach (string score in scores)
         {
             GameObject entry = Instantiate(scoreEntryPrefab, leaderboardContentParent);
             entry.SetActive(true);
-
             TMP_Text text = entry.GetComponent<TMP_Text>();
-            if (text != null)
-            {
-                text.text = score.Replace(":", " - ");
-            }
+            if (text != null) text.text = score;
         }
-    }
-
-    public void DownloadData()
-    {
-        CsvLogger.Instance.StopLogger();
     }
 
     public void RestartGame()
     {
-        Time.timeScale = 1f; // Resume the game
-
-        // Reload the current scene to restart the game
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-
-        CsvLogger.LogEvent("Game Restarted", System.DateTime.Now.ToString("HH:mm:ss"));
-
     }
 
     private void ShowStart()
     {
-        startPanel.SetActive(true); // Show start panel
-        gameOverPanel.SetActive(false); // Hide game over panel
-        gameUIPanel.SetActive(false);  // Hide game UI panel
+        startPanel.SetActive(true);
+        gameOverPanel.SetActive(false);
+        gameUIPanel.SetActive(false);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        if (IsGameStarted() && player != null && lifeBarFill != null)
-        {
-            float currentSize = player.localScale.x;
-            float fill = (currentSize - minSize) / (fullSize - minSize);
-            lifeBarFill.fillAmount = fill;
-        }
-    }
+    public bool IsGameStarted() => isGameStarted;
+    public bool IsGameOver() => isGameOver;
 
-    public void OnLapCompleted()
-    {
-        CsvLogger.LogEvent("Lap Number", currentLap.ToString());
-
-        currentLap++;
-
-        Debug.Log("Lap Completed! Total laps: " + currentLap);
-        CsvLogger.LogEvent("Lap Number", currentLap.ToString());
-        CsvLogger.LogEvent("Player Scale", player.localScale.ToString("F2"));
-
-
-        if (lapText != null)
-            lapText.text = "Laps: " + currentLap;
-    }
-
-    public bool IsGameStarted()
-    {
-        return isGameStarted;
-    }
-
-    public bool IsGameOver()
-    {
-        return isGameOver;
-    }
-
-    // Coroutine to pause the game after UI has rendered
     private IEnumerator PauseAfterUI()
     {
-        yield return new WaitForEndOfFrame();  // wait until UI renders
-        Time.timeScale = 0f;                   // now pause the game
+        yield return new WaitForEndOfFrame();
+        Time.timeScale = 0f;
     }
-
 }
-
-
