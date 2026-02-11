@@ -94,18 +94,17 @@ public class PlayerController : MonoBehaviour
 
         if (stickInput.magnitude > 0.1f)
         {
-            // 1. ROTATION (Works regardless of lever)
+            // ROTATION
             float rotationAmount = stickInput.x * turnSpeed * Time.deltaTime;
             transform.Rotate(0, rotationAmount, 0);
 
-            // 2. SCALE MULTIPLIER (For the Shrink Mechanic)
-            // If your tank is at 0.1 scale, you move 10x slower.
+            // --- BYPASS & SHRINK LOGIC ---
+            // We use transform.localScale.x so that when you shrink to 0.1, 
+            // the tank automatically moves 10x slower.
             float scaleMultiplier = transform.localScale.x;
 
-            // 3. FORWARD MOVEMENT
-            // Ensure throttleMultiplier isn't 0 during testing! 
-            // For a quick fix, you can change 'throttleMultiplier' to '1f' in Start()
-            Vector3 moveDir = transform.forward * stickInput.y * (maxSpeed * throttleMultiplier * scaleMultiplier);
+            // We multiply by 1f (or remove throttleMultiplier) to ensure it moves!
+            Vector3 moveDir = transform.forward * stickInput.y * (maxSpeed * 1f * scaleMultiplier);
 
             currentVelocity = Vector3.Lerp(currentVelocity, moveDir, acceleration * Time.deltaTime);
         }
@@ -113,7 +112,6 @@ public class PlayerController : MonoBehaviour
         {
             currentVelocity = Vector3.Lerp(currentVelocity, Vector3.zero, acceleration * Time.deltaTime);
         }
-
         // Apply movement via CharacterController
         float vertical = -9.81f; // Simple gravity
         Vector3 finalMove = currentVelocity + (Vector3.up * vertical);
