@@ -8,41 +8,40 @@ public class PlayerController : MonoBehaviour
     private Camera mainCamera;
     private Vector3 currentVelocity;
 
+    [Header("Core References")]
     public GameManager gameManager;
-    public GameObject pickupEffectPrefab;
+    public GameObject projectilePrefab;
+    public Transform projectileSpawnPoint;
 
-    [Header("Movement Settings")]
-    public InputActionReference moveAction;
+    [Header("Movement Tuning")]
     public float maxSpeed = 7f;
     public float acceleration = 12f;
     public float turnSpeed = 100f;
     public float hoverHeight = 1.0f;
-
-    [Header("VR Throttle")]
-    public Transform throttleLever; // The 3D Lever handle
-    public float minLeverAngle = -45f;
-    public float maxLeverAngle = 45f;
-    private float throttleMultiplier = 0f; // Starts at 0 (Stopped)
-
-    // --- TANGIBLE BRIDGE VARIABLES ---
-    private float extX = 0;
-    private float extY = 0;
-
-    public void UpdateExternalInput(float x, float y)
-    {
-        extX = x * -1f;
-        extY = y;
-    }
-
-    [Header("Combat Settings")]
-    public InputActionReference interactAction;
-    public Transform projectileSpawnPoint;
-    public GameObject projectilePrefab;
     public float projectileForce = 30f;
+
+    [Header("Hardware Links")]
+    public VRLever throttleScript; // Link the object with VRLever.cs here
+    public InputActionReference moveAction; // VR Controller Fallback
+    public InputActionReference interactAction; // VR Trigger Fallback
 
     [Header("Cockpit Visuals")]
     public Transform cockpitJoystickHandle;
     public float maxVisualTilt = 20f;
+
+    [Header("Diagnostics")]
+    public bool showDebugLogs = true;
+
+    // --- TANGIBLE BRIDGE (WEBSOCKET DATA) ---
+    private float extX = 0;
+    private float extY = 0;
+
+    // This method is called by your WebSocketClientExample script
+    public void UpdateExternalInput(float x, float y)
+    {
+        extX = x * -1f; // Inverts X to match tank steering
+        extY = y;
+    }
 
     private void OnEnable()
     {
@@ -54,28 +53,24 @@ public class PlayerController : MonoBehaviour
     {
         characterController = GetComponent<CharacterController>();
         mainCamera = Camera.main;
+
         if (gameManager != null) gameManager.StartGame();
     }
 
     void Update()
     {
-        if (characterController == null || !characterController.enabled || !gameObject.activeInHierarchy)
-            return;
+        if (characterController == null || !characterController.enabled) return;
 
+        // Keep the VR capsule aligned with the player's head
         SyncCapsuleToHead();
 
         if (gameManager != null && gameManager.IsGameStarted())
         {
-            // Calculate the speed multiplier from the VR lever first
-            CalculateThrottleFromLever();
-
-            // Move the tank
             HandleTankMovement();
-
-            // Tilt the cockpit joystick based on ESP32 data
             UpdateJoystickVisuals();
         }
 
+        // Shooting via VR Controller Trigger
         if (interactAction != null && interactAction.action.WasPressedThisFrame())
         {
             Shoot();
@@ -86,38 +81,43 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 stickInput = new Vector2(extX, extY);
 
-        // Fallback to VR Controllers
+        // Fallback logic
         if (stickInput.magnitude < 0.05f && moveAction != null)
         {
             stickInput = moveAction.action.ReadValue<Vector2>();
         }
 
+        // --- THE STABILITY FIX ---
+        // If the lever script is missing or hasn't loaded, default to 0 (Safe) 
+        // or 1 (Always move) depending on your preference.
+        float throttle = 0f;
+        if (throttleScript != null)
+        {
+            throttle = throttleScript.speedPercentage;
+        }
+
         if (stickInput.magnitude > 0.1f)
         {
-            // ROTATION
-            float rotationAmount = stickInput.x * turnSpeed * Time.deltaTime;
-            transform.Rotate(0, rotationAmount, 0);
+            // Rotation
+            transform.Rotate(0, stickInput.x * turnSpeed * Time.deltaTime, 0);
 
-            // --- BYPASS & SHRINK LOGIC ---
-            // We use transform.localScale.x so that when you shrink to 0.1, 
-            // the tank automatically moves 10x slower.
-            float scaleMultiplier = transform.localScale.x;
+            // Movement Calculation
+            Vector3 targetMove = transform.forward * stickInput.y * (maxSpeed * throttle);
 
-            // We multiply by 1f (or remove throttleMultiplier) to ensure it moves!
-            Vector3 moveDir = transform.forward * stickInput.y * (maxSpeed * 1f * scaleMultiplier);
-
-            currentVelocity = Vector3.Lerp(currentVelocity, moveDir, acceleration * Time.deltaTime);
+            // Use Move() directly for more consistent response than Lerp if it's lagging
+            currentVelocity = Vector3.MoveTowards(currentVelocity, targetMove, acceleration * Time.deltaTime);
         }
         else
         {
-            currentVelocity = Vector3.Lerp(currentVelocity, Vector3.zero, acceleration * Time.deltaTime);
+            currentVelocity = Vector3.MoveTowards(currentVelocity, Vector3.zero, acceleration * Time.deltaTime);
         }
-        // Apply movement via CharacterController
-        float vertical = -9.81f; // Simple gravity
-        Vector3 finalMove = currentVelocity + (Vector3.up * vertical);
-        characterController.Move(finalMove * Time.deltaTime);
-    }
 
+        // --- THE "STUCK" FIX ---
+        // CharacterController.Move expects World Space, and we need to ensure 
+        // vertical force is always applied so the tank doesn't float.
+        Vector3 finalMove = (currentVelocity + (Vector3.up * -9.81f)) * Time.deltaTime;
+        characterController.Move(finalMove);
+    }
     void UpdateJoystickVisuals()
     {
         if (cockpitJoystickHandle != null)
@@ -126,21 +126,6 @@ public class PlayerController : MonoBehaviour
             float tiltZ = -extX * maxVisualTilt;
             cockpitJoystickHandle.localRotation = Quaternion.Euler(tiltX, 0, tiltZ);
         }
-    }
-
-    void CalculateThrottleFromLever()
-    {
-        if (throttleLever == null) return;
-
-        float currentAngle = throttleLever.localEulerAngles.x;
-        if (currentAngle > 180) currentAngle -= 360;
-
-        float rawThrottle = Mathf.InverseLerp(minLeverAngle, maxLeverAngle, currentAngle);
-
-        // Digital Snap: 0% / 50% / 100%
-        if (rawThrottle < 0.2f) throttleMultiplier = 0f;
-        else if (rawThrottle < 0.7f) throttleMultiplier = 0.5f;
-        else throttleMultiplier = 1f;
     }
 
     void SyncCapsuleToHead()
@@ -155,7 +140,8 @@ public class PlayerController : MonoBehaviour
 
     public void Shoot()
     {
-        if (projectileSpawnPoint == null) return;
+        if (projectileSpawnPoint == null || projectilePrefab == null) return;
+
         GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
         Rigidbody rb = proj.GetComponent<Rigidbody>();
         if (rb != null)

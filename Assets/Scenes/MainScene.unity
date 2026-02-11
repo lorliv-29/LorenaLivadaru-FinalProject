@@ -7397,7 +7397,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1820897918385990095, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
       propertyPath: m_RequestedTrackingOriginMode
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2218496723442559053, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
       propertyPath: m_LocalPosition.x
@@ -12973,21 +12973,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gameManager: {fileID: 576363092}
-  pickupEffectPrefab: {fileID: 2070504768512638396, guid: 080efca5171ae8446b014bfb1f9e115a, type: 3}
-  moveAction: {fileID: 1056575388}
+  projectilePrefab: {fileID: 7566992092314363487, guid: 9056b09bb4136294692ddffc8157ed7d, type: 3}
+  projectileSpawnPoint: {fileID: 4818087}
   maxSpeed: 15
   acceleration: 30
   turnSpeed: 35
   hoverHeight: 1.1
-  throttleLever: {fileID: 1389402068}
-  minLeverAngle: -45
-  maxLeverAngle: 45
-  interactAction: {fileID: 1381126520}
-  projectileSpawnPoint: {fileID: 4818087}
-  projectilePrefab: {fileID: 7566992092314363487, guid: 9056b09bb4136294692ddffc8157ed7d, type: 3}
   projectileForce: 10
+  throttleScript: {fileID: 1389402072}
+  moveAction: {fileID: 1056575388}
+  interactAction: {fileID: 1381126520}
   cockpitJoystickHandle: {fileID: 932698234}
   maxVisualTilt: 15
+  showDebugLogs: 1
 --- !u!4 &1255903391 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2218496723442559053, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
@@ -14679,6 +14677,7 @@ GameObject:
   - component: {fileID: 1389402071}
   - component: {fileID: 1389402070}
   - component: {fileID: 1389402069}
+  - component: {fileID: 1389402072}
   m_Layer: 0
   m_Name: LeverHinge
   m_TagString: Untagged
@@ -14849,7 +14848,7 @@ HingeJoint:
   m_UseSpring: 1
   m_Spring:
     spring: 0
-    damper: 1
+    damper: 15
     targetPosition: 0
   m_UseMotor: 0
   m_Motor:
@@ -14860,7 +14859,7 @@ HingeJoint:
   m_ExtendedLimits: 0
   m_UseAcceleration: 0
   m_Limits:
-    min: -80
+    min: -60
     max: 60
     bounciness: 0
     bounceMinVelocity: 0.2
@@ -14898,6 +14897,19 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1389402072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1389402067}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 13bc74386d55d4b4fa7c15c011dd5551, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VRLever
+  speedPercentage: 0
 --- !u!1 &1398448980
 GameObject:
   m_ObjectHideFlags: 0
