@@ -75,6 +75,39 @@
                 },
                 {
                     "name": "",
+                    "id": "6dab4e7d-b4fc-414d-b899-2ba71ace0572",
+                    "path": "<XRHandDevice>{RightHand}/graspFirm",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grab",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4c565f94-6862-4601-8494-ad8be0b118f1",
+                    "path": "<TouchscreenGestureInputController>{RightHand}/{GraspFirm}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grab",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "77823477-daf8-4cf1-8897-acb332fccff4",
+                    "path": "<MetaAimHand>{RightHand}/{GraspFirm}",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Grab",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "f78285cd-b2ef-40bf-9d24-127a0109f36d",
                     "path": "<Keyboard>/n",
                     "interactions": "",
