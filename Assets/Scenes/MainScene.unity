@@ -941,8 +941,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.XRInteractionManager
   m_StartingHoverFilters: []
-  m_StartingSelectFilters:
-  - {fileID: 0}
+  m_StartingSelectFilters: []
 --- !u!4 &19386642
 Transform:
   m_ObjectHideFlags: 0
@@ -37049,6 +37048,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.x
       value: 13.09
       objectReference: {fileID: 0}
+    - target: {fileID: 1253868401696766737, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1386082259481429544, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
       propertyPath: m_EnableFarCasting
       value: 0
@@ -37159,6 +37162,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8103703143137404302, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
       propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8227192243087186103, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
+      propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9035450757346758748, guid: d6878e1999eb4b44a9f5a263af86c185, type: 3}
@@ -38395,7 +38402,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &834735054
 RectTransform:
   m_ObjectHideFlags: 0
@@ -39591,7 +39598,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &863728505
 Transform:
   m_ObjectHideFlags: 0
@@ -40628,7 +40635,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &876605446
 RectTransform:
   m_ObjectHideFlags: 0
@@ -57156,7 +57163,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1255903383}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ee9f8628b40eb3c4ba2a41fb9efc620d, type: 3}
   m_Name: 
@@ -66594,7 +66601,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1467197518
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -71178,7 +71185,7 @@ MonoBehaviour:
   m_SmoothScale: 0
   m_SmoothScaleAmount: 8
   m_TightenScale: 0.1
-  m_ThrowOnDetach: 1
+  m_ThrowOnDetach: 0
   m_ThrowSmoothingDuration: 0.25
   m_ThrowSmoothingCurve:
     serializedVersion: 2
@@ -83956,7 +83963,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1836474300
 RectTransform:
   m_ObjectHideFlags: 0
@@ -89855,7 +89862,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1956345149
 RectTransform:
   m_ObjectHideFlags: 0
@@ -99081,6 +99088,7 @@ GameObject:
   - component: {fileID: 1537185312}
   - component: {fileID: 1537185311}
   - component: {fileID: 1537185317}
+  - component: {fileID: 1871293389320687876}
   m_Layer: 0
   m_Name: Slider
   m_TagString: Untagged
@@ -99768,6 +99776,21 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 197359010645035991}
   m_Mesh: {fileID: 5964940218898284536, guid: ab8b9ff66512b6b42a3c67025022eb04, type: 3}
+--- !u!114 &1871293389320687876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 197359010645035991}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab242c54b34cb2044af9f0ae4e3abbbe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SliderThrottle
+  startPoint: {fileID: 2022093541}
+  endPoint: {fileID: 928303001}
+  speedPercentage: 0
 --- !u!114 &1924343584641527381
 MonoBehaviour:
   m_ObjectHideFlags: 0
