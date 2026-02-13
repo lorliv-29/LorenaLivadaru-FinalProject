@@ -21,9 +21,10 @@ public class PlayerController : MonoBehaviour
     public float projectileForce = 30f;
 
     [Header("Hardware Links")]
-    public VRLever throttleScript; // Link the object with VRLever.cs here
-    public InputActionReference moveAction; // VR Controller Fallback
-    public InputActionReference interactAction; // VR Trigger Fallback
+    [Header("Hardware Links")]
+    public LeverVrGrab throttleScript; // This must match the filename and class name
+    public InputActionReference moveAction;
+    public InputActionReference interactAction;
 
     [Header("Cockpit Visuals")]
     public Transform cockpitJoystickHandle;

@@ -1,56 +1,59 @@
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
-public class SimpleCockpitButton : MonoBehaviour
+public class PermanentButton : MonoBehaviour
 {
-    [Header("Components")]
-    public Transform buttonCap; // The moving part of the button
-
-    [Header("Settings")]
-    public float pushDistance = 0.02f; // How far it moves down (in meters)
-    public float returnSpeed = 5f;     // How fast it snaps back up
-
-    [Header("Events")]
-    public UnityEvent OnPressed;
+    public Transform buttonCap;
+    public float pushDistance = 0.02f;
+    public UnityEvent OnFirstPressed;
 
     private Vector3 startPos;
-    private bool isPressed = false;
+    private Vector3 pushedPos;
+    private bool isPermanentlyDown = false;
     private XRSimpleInteractable interactable;
 
     void Start()
     {
         startPos = buttonCap.localPosition;
+        pushedPos = startPos + new Vector3(0, -pushDistance, 0);
         interactable = GetComponent<XRSimpleInteractable>();
 
-        // Ensure we have an interactable
         if (interactable == null) interactable = gameObject.AddComponent<XRSimpleInteractable>();
     }
 
     void Update()
     {
-        // 1. Check if a hand is "hovering" (touching) the button
+        // If it's already down, stop all logic. It stays there forever.
+        if (isPermanentlyDown) return;
+
         if (interactable.isHovered)
         {
-            // Move the cap toward the pushed position
-            Vector3 targetPos = startPos + new Vector3(0, -pushDistance, 0);
-            buttonCap.localPosition = Vector3.Lerp(buttonCap.localPosition, targetPos, Time.deltaTime * 20f);
+            // Smoothly move to pushed position
+            buttonCap.localPosition = Vector3.Lerp(buttonCap.localPosition, pushedPos, Time.deltaTime * 20f);
 
-            // 2. Trigger event if we hit the bottom
-            float dist = Vector3.Distance(buttonCap.localPosition, targetPos);
-            if (dist < 0.005f && !isPressed)
+            // Check if we reached the bottom
+            if (Vector3.Distance(buttonCap.localPosition, pushedPos) < 0.001f)
             {
-                isPressed = true;
-                OnPressed.Invoke();
-                Debug.Log("Button Pushed!");
+                StayDown();
             }
         }
         else
         {
-            // 3. Reset position when hand leaves
-            buttonCap.localPosition = Vector3.Lerp(buttonCap.localPosition, startPos, Time.deltaTime * returnSpeed);
-            isPressed = false;
+            // If not hovered and NOT yet locked down, return to start
+            buttonCap.localPosition = Vector3.Lerp(buttonCap.localPosition, startPos, Time.deltaTime * 5f);
         }
+    }
+
+    void StayDown()
+    {
+        isPermanentlyDown = true;
+        buttonCap.localPosition = pushedPos; // Snap exactly to position
+
+        // Disable the interactable so it can't be "hovered" anymore
+        interactable.enabled = false;
+
+        OnFirstPressed.Invoke();
+        Debug.Log("Button is now locked down permanently.");
     }
 }
