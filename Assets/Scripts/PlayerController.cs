@@ -22,7 +22,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Hardware Links")]
     [Header("Hardware Links")]
-    public LeverVrGrab throttleScript; // This must match the filename and class name
+    public CockpitSlider throttleScript;// This must match the filename and class name
     public InputActionReference moveAction;
     public InputActionReference interactAction;
 

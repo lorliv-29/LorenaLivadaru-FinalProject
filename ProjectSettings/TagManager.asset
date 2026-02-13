@@ -11,6 +11,7 @@ TagManager:
   - Brick
   - InnerBrick
   - SpeedPad
+  - ENRIVONMENT
   layers:
   - Default
   - TransparentFX
@@ -18,8 +19,8 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
+  - Ignore MiniMap
+  - Track
   - 
   - 
   - 
