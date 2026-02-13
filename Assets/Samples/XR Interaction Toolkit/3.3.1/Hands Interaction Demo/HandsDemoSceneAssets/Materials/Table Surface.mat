@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Table Surface
-  m_Shader: {fileID: 4800000, guid: 4f0e6b41f97e53d468a1727048a085b5, type: 3}
+  m_Shader: {fileID: 4800000, guid: 20cdc8efa122afa4caaf790837f49a22, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
