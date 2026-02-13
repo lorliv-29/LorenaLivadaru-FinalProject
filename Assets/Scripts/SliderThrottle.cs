@@ -12,17 +12,29 @@ public class SliderThrottle : MonoBehaviour
 
     void Update()
     {
-        if (startPoint == null || endPoint == null) return;
+        // Find the hand
+        GameObject hand = GameObject.Find("RightHand");
+        if (hand == null) return;
 
-        // 1. Calculate the total physical length of the track
-        float trackLength = Vector3.Distance(startPoint.position, endPoint.position);
+        // 1. Convert the hand's World position into the Slider's Local space
+        // This makes the math 'relative' to the tank's current position
+        Vector3 localHandPos = transform.parent.InverseTransformPoint(hand.transform.position);
 
-        // 2. Calculate how far the handle is from the BOTTOM (endPoint)
-        float distanceToBottom = Vector3.Distance(transform.position, endPoint.position);
+        // 2. Do the math using Local coordinates
+        Vector3 localStart = startPoint.localPosition;
+        Vector3 localEnd = endPoint.localPosition;
 
-        // 3. Map it: 
-        // Handle at the Bottom (distance 0) -> speed 0.0
-        // Handle at the Top (distance = trackLength) -> speed 1.0
-        speedPercentage = Mathf.Clamp01(distanceToBottom / trackLength);
+        Vector3 line = localEnd - localStart;
+        float length = line.magnitude;
+        Vector3 dir = line.normalized;
+
+        Vector3 v = localHandPos - localStart;
+        float d = Vector3.Dot(v, dir);
+        d = Mathf.Clamp(d, 0f, length);
+
+        // 3. Apply to LocalPosition so it stays attached to the tank
+        transform.localPosition = localStart + (dir * d);
+
+        speedPercentage = d / length;
     }
 }

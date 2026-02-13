@@ -21,8 +21,13 @@ public class PlayerController : MonoBehaviour
     public float projectileForce = 30f;
 
     [Header("Hardware Links")]
-    [Header("Hardware Links")]
-    public SliderThrottle throttleScript; // This must match the filename and class name
+    // --- LEVER BYPASS ---
+    // Commented out the lever reference for now
+    // public SliderThrottle throttleScript; 
+
+    // Using the Automatic Speed script as the bridge
+    public AutomaticThrottle throttleScript;
+
     public InputActionReference moveAction;
     public InputActionReference interactAction;
 
@@ -37,7 +42,6 @@ public class PlayerController : MonoBehaviour
     private float extX = 0;
     private float extY = 0;
 
-    // This method is called by your WebSocketClientExample script
     public void UpdateExternalInput(float x, float y)
     {
         extX = x * -1f; // Inverts X to match tank steering
@@ -54,36 +58,35 @@ public class PlayerController : MonoBehaviour
     {
         characterController = GetComponent<CharacterController>();
         mainCamera = Camera.main;
-
-       // if (gameManager != null) gameManager.StartGame();
     }
 
     void FixedUpdate()
     {
+        /* --- BYPASSING DIRECT LEVER MOVEMENT ---
+        // We are moving the lever logic into HandleTankMovement() 
+        // to keep everything inside the CharacterController system.
+        
         if (throttleScript != null)
         {
-            // speedPercentage is 1.0 at the Top, 0.0 at the Bottom
             float finalSpeed = throttleScript.speedPercentage * maxSpeed;
-
-            // Apply to Rigidbody or Transform
             transform.position += transform.forward * finalSpeed * Time.fixedDeltaTime;
         }
+        */
     }
 
     void Update()
     {
         if (characterController == null || !characterController.enabled) return;
 
-        // Keep the VR capsule aligned with the player's head
         SyncCapsuleToHead();
 
-        if (gameManager != null && gameManager.IsGameStarted())
+        // Ensure the game manager check doesn't block testing if null
+        if (gameManager == null || gameManager.IsGameStarted())
         {
             HandleTankMovement();
             UpdateJoystickVisuals();
         }
 
-        // Shooting via VR Controller Trigger
         if (interactAction != null && interactAction.action.WasPressedThisFrame())
         {
             Shoot();
@@ -94,43 +97,42 @@ public class PlayerController : MonoBehaviour
     {
         Vector2 stickInput = new Vector2(extX, extY);
 
-        // Fallback logic
+        // Fallback to VR Controllers if WebSocket isn't sending data
         if (stickInput.magnitude < 0.05f && moveAction != null)
         {
             stickInput = moveAction.action.ReadValue<Vector2>();
         }
 
-        // --- THE STABILITY FIX ---
-        // If the lever script is missing or hasn't loaded, default to 0 (Safe) 
-        // or 1 (Always move) depending on your preference.
+        // --- AUTOMATIC THROTTLE LOGIC ---
         float throttle = 0f;
         if (throttleScript != null)
         {
             throttle = throttleScript.speedPercentage;
         }
-
-        if (stickInput.magnitude > 0.1f)
-        {
-            // Rotation
-            transform.Rotate(0, stickInput.x * turnSpeed * Time.deltaTime, 0);
-
-            // Movement Calculation
-            Vector3 targetMove = transform.forward * stickInput.y * (maxSpeed * throttle);
-
-            // Use Move() directly for more consistent response than Lerp if it's lagging
-            currentVelocity = Vector3.MoveTowards(currentVelocity, targetMove, acceleration * Time.deltaTime);
-        }
         else
         {
-            currentVelocity = Vector3.MoveTowards(currentVelocity, Vector3.zero, acceleration * Time.deltaTime);
+            // If the script is missing, we default to 0.5 so you can still move
+            throttle = 0.5f;
         }
 
-        // --- THE "STUCK" FIX ---
-        // CharacterController.Move expects World Space, and we need to ensure 
-        // vertical force is always applied so the tank doesn't float.
+        // Apply Rotation
+        if (Mathf.Abs(stickInput.x) > 0.1f)
+        {
+            transform.Rotate(0, stickInput.x * turnSpeed * Time.deltaTime, 0);
+        }
+
+        // Apply Forward Movement
+        // Note: stickInput.y handles controller forward, throttle handles the 'cruise' speed
+        float forwardInput = (Mathf.Abs(stickInput.y) > 0.1f) ? stickInput.y : 1.0f;
+        Vector3 targetMove = transform.forward * forwardInput * (maxSpeed * throttle);
+
+        currentVelocity = Vector3.MoveTowards(currentVelocity, targetMove, acceleration * Time.deltaTime);
+
+        // Apply gravity and Move
         Vector3 finalMove = (currentVelocity + (Vector3.up * -9.81f)) * Time.deltaTime;
         characterController.Move(finalMove);
     }
+
     void UpdateJoystickVisuals()
     {
         if (cockpitJoystickHandle != null)
