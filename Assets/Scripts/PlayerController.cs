@@ -22,7 +22,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Hardware Links")]
     [Header("Hardware Links")]
-    public CockpitSlider throttleScript;// This must match the filename and class name
+    public SliderThrottle throttleScript; // This must match the filename and class name
     public InputActionReference moveAction;
     public InputActionReference interactAction;
 
@@ -56,6 +56,18 @@ public class PlayerController : MonoBehaviour
         mainCamera = Camera.main;
 
        // if (gameManager != null) gameManager.StartGame();
+    }
+
+    void FixedUpdate()
+    {
+        if (throttleScript != null)
+        {
+            // speedPercentage is 1.0 at the Top, 0.0 at the Bottom
+            float finalSpeed = throttleScript.speedPercentage * maxSpeed;
+
+            // Apply to Rigidbody or Transform
+            transform.position += transform.forward * finalSpeed * Time.fixedDeltaTime;
+        }
     }
 
     void Update()
