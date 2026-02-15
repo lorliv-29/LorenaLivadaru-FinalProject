@@ -17,17 +17,13 @@ public class GameManager : MonoBehaviour
     public GameObject scoreEntryPrefab;
 
     [Header("Race UI")]
-    public TextMeshProUGUI timerText;       // Displays current race time
-    public TextMeshProUGUI lapText;         // Displays current lap number
-    public TextMeshProUGUI bestTimeText;    // Displays best lap time
+    public TMP_Text timerText;      // Changed from TextMeshProUGUI to TMP_Text
+    public TMP_Text bestTimeText;   // Changed from TextMeshProUGUI to TMP_Text
 
     [Header("Audio")]
     public AudioSource backgroundMusic;
 
-    // --- RACE DATA ---
     private float raceTimer = 0f;
-    private float bestLapTime = float.MaxValue;
-    private int currentLap = 0;
     private string playerName;
     private bool isGameStarted = false;
     private bool isGameOver = false;
@@ -35,7 +31,8 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         ShowStart();
-        CsvLogger.Instance.StartLogger();
+        // Ensure CsvLogger exists in scene or is a Singleton
+        if (CsvLogger.Instance != null) CsvLogger.Instance.StartLogger();
 
         if (bestTimeText != null) bestTimeText.text = "Best: --:--";
     }
@@ -45,7 +42,6 @@ public class GameManager : MonoBehaviour
         isGameStarted = true;
         isGameOver = false;
         raceTimer = 0f;
-        currentLap = 1; // Start on Lap 1
 
         startPanel.SetActive(false);
         gameOverPanel.SetActive(false);
@@ -56,17 +52,13 @@ public class GameManager : MonoBehaviour
         if (backgroundMusic != null && !backgroundMusic.isPlaying)
             backgroundMusic.Play();
 
-        if (lapText != null) lapText.text = "Lap: " + currentLap;
-
         CsvLogger.LogEvent("Game Start", System.DateTime.Now.ToString("HH:mm:ss"));
-        CsvLogger.LogEvent("Player Name", playerName);
     }
 
     void Update()
     {
         if (isGameStarted && !isGameOver)
         {
-            // Update the race timer
             raceTimer += Time.deltaTime;
             UpdateTimerUI();
         }
@@ -76,41 +68,16 @@ public class GameManager : MonoBehaviour
     {
         if (timerText != null)
         {
-            // Formats time to 00:00.00
-            int minutes = Mathf.FloorToInt(raceTimer / 60f);
-            int seconds = Mathf.FloorToInt(raceTimer % 60f);
-            float fraction = (raceTimer * 100f) % 100f;
-            timerText.text = string.Format("{0:00}:{1:00}.{2:00}", minutes, seconds, fraction);
+            timerText.text = FormatTime(raceTimer);
         }
     }
 
-    public void OnLapCompleted()
+    private string FormatTime(float time)
     {
-        // Check if this was the fastest lap
-        if (raceTimer < bestLapTime)
-        {
-            bestLapTime = raceTimer;
-            UpdateBestTimeUI();
-        }
-
-        CsvLogger.LogEvent("Lap Finished", currentLap.ToString());
-        CsvLogger.LogEvent("Lap Time", timerText.text);
-
-        currentLap++;
-        raceTimer = 0f; // Reset timer for the next lap
-
-        if (lapText != null) lapText.text = "Lap: " + currentLap;
-    }
-
-    private void UpdateBestTimeUI()
-    {
-        if (bestTimeText != null)
-        {
-            int minutes = Mathf.FloorToInt(bestLapTime / 60f);
-            int seconds = Mathf.FloorToInt(bestLapTime % 60f);
-            float fraction = (bestLapTime * 100f) % 100f;
-            bestTimeText.text = "Best: " + string.Format("{0:00}:{1:00}.{2:00}", minutes, seconds, fraction);
-        }
+        int minutes = Mathf.FloorToInt(time / 60f);
+        int seconds = Mathf.FloorToInt(time % 60f);
+        float fraction = (time * 100f) % 100f;
+        return string.Format("{0:00}:{1:00}.{2:00}", minutes, seconds, fraction);
     }
 
     public void GameOver()
@@ -118,61 +85,67 @@ public class GameManager : MonoBehaviour
         if (isGameOver) return;
         isGameOver = true;
 
-        // --- PHYSICAL HARDWARE CLEANUP ---
-        // Tells the NeoPixel ring to turn off when the race ends
-        WebSocketClientExample ws = FindObjectOfType<WebSocketClientExample>();
-        if (ws != null)
+        // 1. TURN OFF HUD IMMEDIATELY (Move this to the top!)
+        if (gameUIPanel != null)
         {
-            ws.SendLedOFF();
-            Debug.Log("<color=orange>Hardware Sync:</color> Sending LED Power Down signal.");
+            gameUIPanel.SetActive(false);
+            Debug.Log("<color=cyan>UI Sync:</color> Game HUD deactivated.");
         }
-        // ---------------------------------
 
-        // Add the BEST lap time to the leaderboard instead of total laps
-        ScoreManager.AddScore(playerName, Mathf.FloorToInt(bestLapTime));
+        // 2. HARDWARE SHUTDOWN
+        WebSocketClientExample ws = Object.FindFirstObjectByType<WebSocketClientExample>();
+        if (ws != null) ws.SendLedOFF();
 
-        gameUIPanel.SetActive(false);
+        // 3. DATA & LEADERBOARD
+        ScoreManager.AddScore(playerName, Mathf.FloorToInt(raceTimer));
         ShowLeaderboard();
-        gameOverPanel.SetActive(true);
+
+        if (gameOverPanel != null) gameOverPanel.SetActive(true);
 
         StartCoroutine(PauseAfterUI());
-        CsvLogger.LogEvent("Race Over", System.DateTime.Now.ToString("HH:mm:ss"));
     }
-
     public void RestartGame()
     {
-        // --- SAFETY RESET ---
-        // Ensure LEDs are off before the scene reloads
-        WebSocketClientExample ws = FindObjectOfType<WebSocketClientExample>();
+        WebSocketClientExample ws = UnityEngine.Object.FindFirstObjectByType<WebSocketClientExample>();
         if (ws != null) ws.SendLedOFF();
-        // --------------------
 
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    // Leaderboard and logic remains mostly the same, but uses Best Time
     void ShowLeaderboard()
     {
-        leaderboardPanel.SetActive(true);
+        if (leaderboardPanel != null) leaderboardPanel.SetActive(true);
+        if (leaderboardContentParent == null) return;
+
         foreach (Transform child in leaderboardContentParent) Destroy(child.gameObject);
 
         var scores = ScoreManager.GetScoreStrings();
-        foreach (string score in scores)
+
+        foreach (string scoreEntry in scores)
         {
             GameObject entry = Instantiate(scoreEntryPrefab, leaderboardContentParent);
             entry.SetActive(true);
-            TMP_Text text = entry.GetComponent<TMP_Text>();
-            if (text != null) text.text = score;
+            entry.transform.localScale = Vector3.one;
+
+            TMP_Text text = entry.GetComponentInChildren<TMP_Text>();
+            if (text != null)
+            {
+                // FORCE the component to wake up
+                text.enabled = true;
+                text.text = scoreEntry;
+
+                // Log to console so you can see it working
+                Debug.Log($"<color=green>Leaderboard:</color> Activated text for {scoreEntry}");
+            }
         }
     }
 
-   
     private void ShowStart()
     {
-        startPanel.SetActive(true);
-        gameOverPanel.SetActive(false);
-        gameUIPanel.SetActive(false);
+        if (startPanel != null) startPanel.SetActive(true);
+        if (gameOverPanel != null) gameOverPanel.SetActive(false);
+        if (gameUIPanel != null) gameUIPanel.SetActive(false);
     }
 
     public bool IsGameStarted() => isGameStarted;

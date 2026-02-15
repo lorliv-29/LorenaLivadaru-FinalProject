@@ -21,15 +21,31 @@ public static class ScoreManager
     public static List<string> GetScoreStrings(int maxEntries = 10)
     {
         string all = PlayerPrefs.GetString(ScoresKey, "");
-        string[] entries = all.Split('|');
+        if (string.IsNullOrEmpty(all)) return new List<string>();
 
-        List<string> scoreList = new List<string>();
-        for (int i = 0; i < Mathf.Min(maxEntries, entries.Length); i++)
+        string[] entries = all.Split(new[] { '|' }, System.StringSplitOptions.RemoveEmptyEntries);
+        List<(string name, int time)> sortedList = new List<(string, int)>();
+
+        foreach (var entry in entries)
         {
-            if (!string.IsNullOrWhiteSpace(entries[i]))
-                scoreList.Add(entries[i]);
+            string[] parts = entry.Split(':');
+            if (parts.Length == 2 && int.TryParse(parts[1], out int t))
+                sortedList.Add((parts[0], t));
         }
 
-        return scoreList;
+        // Sort: Smallest time (fastest) at the top
+        sortedList.Sort((a, b) => a.time.CompareTo(b.time));
+
+        List<string> formattedScores = new List<string>();
+        for (int i = 0; i < Mathf.Min(maxEntries, sortedList.Count); i++)
+        {
+            // Convert the raw seconds (e.g. 75) into MM:SS (e.g. 01:15)
+            int m = sortedList[i].time / 60;
+            int s = sortedList[i].time % 60;
+            string timeStr = string.Format("{0:00}:{1:00}", m, s);
+
+            formattedScores.Add($"{sortedList[i].name} — {timeStr}");
+        }
+        return formattedScores;
     }
 }
