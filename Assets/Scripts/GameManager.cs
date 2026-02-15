@@ -118,6 +118,16 @@ public class GameManager : MonoBehaviour
         if (isGameOver) return;
         isGameOver = true;
 
+        // --- PHYSICAL HARDWARE CLEANUP ---
+        // Tells the NeoPixel ring to turn off when the race ends
+        WebSocketClientExample ws = FindObjectOfType<WebSocketClientExample>();
+        if (ws != null)
+        {
+            ws.SendLedOFF();
+            Debug.Log("<color=orange>Hardware Sync:</color> Sending LED Power Down signal.");
+        }
+        // ---------------------------------
+
         // Add the BEST lap time to the leaderboard instead of total laps
         ScoreManager.AddScore(playerName, Mathf.FloorToInt(bestLapTime));
 
@@ -127,6 +137,18 @@ public class GameManager : MonoBehaviour
 
         StartCoroutine(PauseAfterUI());
         CsvLogger.LogEvent("Race Over", System.DateTime.Now.ToString("HH:mm:ss"));
+    }
+
+    public void RestartGame()
+    {
+        // --- SAFETY RESET ---
+        // Ensure LEDs are off before the scene reloads
+        WebSocketClientExample ws = FindObjectOfType<WebSocketClientExample>();
+        if (ws != null) ws.SendLedOFF();
+        // --------------------
+
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     // Leaderboard and logic remains mostly the same, but uses Best Time
@@ -145,12 +167,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void RestartGame()
-    {
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-    }
-
+   
     private void ShowStart()
     {
         startPanel.SetActive(true);

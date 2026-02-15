@@ -101,6 +101,14 @@ public class CockpitPinSystem : MonoBehaviour
         currentInput = "";
         UpdateScreen();
 
+        // Tell the LED to turn off during the reset
+        WebSocketClientExample ws = FindObjectOfType<WebSocketClientExample>();
+        if (ws != null)
+        {
+            ws.SendLedOFF();
+        }
+
+        // Reset the physical buttons
         PinButton[] allButtons = FindObjectsOfType<PinButton>();
         foreach (PinButton btn in allButtons)
         {

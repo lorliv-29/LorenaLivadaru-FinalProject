@@ -55,11 +55,18 @@ public class WebSocketClientExample : MonoBehaviour
 
     private async void OnDestroy()
     {
-        if (websocket != null) await websocket.Close();
+        if (websocket != null)
+        {
+            // Force the lights off immediately before killing the connection
+            await SendToESP32("LED_INTENSITY", "0");
+            await websocket.Close();
+        }
     }
 
     public void IncomingMessageParser(string msg)
     {
+        GameManager gm = FindObjectOfType<GameManager>();
+        if (gm != null && (gm.IsGameOver() || !gm.IsGameStarted())) return;
         if (string.IsNullOrEmpty(msg) || !msg.Contains(":")) return;
 
         string[] parts = msg.Split(':');
@@ -95,6 +102,8 @@ public class WebSocketClientExample : MonoBehaviour
             }
         }
     }
+
+
 
     // --- TEST BUTTON FUNCTIONS (Call these from UI Buttons in Unity) ---
     public void TestForward() { if (playerScript != null) playerScript.UpdateExternalInput(0, 1f); }
