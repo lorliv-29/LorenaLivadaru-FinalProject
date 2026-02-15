@@ -31,7 +31,7 @@ public class CockpitPinSystem : MonoBehaviour
     {
         isPoweredOn = true;
         displayScreen.gameObject.SetActive(true);
-        displayScreen.text = "ENTER PIN";
+        displayScreen.text = "ENTER PIN - PINCH";
         displayScreen.color = Color.white;
     }
 
