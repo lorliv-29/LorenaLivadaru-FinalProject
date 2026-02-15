@@ -22,6 +22,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Audio")]
     public AudioSource backgroundMusic;
+    public AudioSource engineStartSound;
 
     private float raceTimer = 0f;
     private string playerName;
@@ -43,16 +44,34 @@ public class GameManager : MonoBehaviour
         isGameOver = false;
         raceTimer = 0f;
 
+        // 1. ENGINE IGNITION
+        // Play the engine sound first for that "Starting the Tank" feel
+        if (engineStartSound != null)
+        {
+            engineStartSound.Play();
+            Debug.Log("<color=orange>Engine:</color> Ignition successful!");
+        }
+
+        // 2. MUSIC HANDLING
+        // Using PlayDelayed lets the engine roar be heard clearly for a split second
+        if (backgroundMusic != null && !backgroundMusic.isPlaying)
+        {
+            backgroundMusic.PlayDelayed(0.8f);
+        }
+
+        // 3. UI STATE TRANSITION
         startPanel.SetActive(false);
         gameOverPanel.SetActive(false);
         gameUIPanel.SetActive(true);
 
-        playerName = string.IsNullOrWhiteSpace(nameInputField.text) ? "Anonymous" : nameInputField.text;
+        // 4. DATA & LOGGING
+        playerName = string.IsNullOrWhiteSpace(nameInputField.text) ? "Player" : nameInputField.text;
 
-        if (backgroundMusic != null && !backgroundMusic.isPlaying)
-            backgroundMusic.Play();
-
-        CsvLogger.LogEvent("Game Start", System.DateTime.Now.ToString("HH:mm:ss"));
+        if (CsvLogger.Instance != null)
+        {
+            CsvLogger.LogEvent("Game Start", System.DateTime.Now.ToString("HH:mm:ss"));
+            CsvLogger.LogEvent("Player Name", playerName);
+        }
     }
 
     void Update()

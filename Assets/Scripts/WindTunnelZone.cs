@@ -2,38 +2,27 @@ using UnityEngine;
 
 public class WindTunnelZone : MonoBehaviour
 {
-    public Vector3 windDirection = Vector3.right; // Direction of the wind
-    public float windStrength = 10f; // Strength of the wind
+    [Header("Wind Settings")]
+    public Vector3 windDirection = Vector3.forward; // The direction of the push
+    public float windStrength = 5f;               // How hard it pushes
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
-    //run while player is in the trigger
+    // This runs while the player is standing inside the trigger
     private void OnTriggerStay(Collider other)
     {
+        // Check if the object entering is the Player
         if (other.CompareTag("Player"))
         {
-            // Get the Rigidbody component of the player
-            Rigidbody rb = other.GetComponent<Rigidbody>();
-           
-            if (rb != null)
-            {
-                // Zero Y to keep force flat if needed
-                Vector3 flatDirection = new Vector3(windDirection.x, 0, windDirection.z).normalized;
+            // Try to find the PlayerController script on that object
+            PlayerController player = other.GetComponent<PlayerController>();
 
-                // Apply wind force to the player
-                rb.AddForce(flatDirection * windStrength, ForceMode.Acceleration);
+            if (player != null)
+            {
+                // Calculate the push vector
+                Vector3 force = windDirection.normalized * windStrength;
+
+                // Send this force to the PlayerController's new ApplyExternalForce function
+                player.ApplyExternalForce(force);
             }
         }
     }
-
 }

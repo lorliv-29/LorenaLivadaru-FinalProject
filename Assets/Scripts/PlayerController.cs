@@ -14,20 +14,20 @@ public class PlayerController : MonoBehaviour
     public Transform projectileSpawnPoint;
 
     [Header("Movement Tuning")]
-    public float maxSpeed = 7f;
-    public float acceleration = 12f;
+    public float maxSpeed = 15f;       // Increased for manual control feel
+    public float offTrackSpeed = 4f;
+    public float acceleration = 15f;    // How fast you reach top speed
+    public float deceleration = 10f;    // How fast you stop when letting go
     public float turnSpeed = 100f;
-    public float hoverHeight = 1.0f;
-    public float projectileForce = 30f;
+   
+
+    [Header("Track Detection")]
+    public LayerMask trackLayer;
+    public float raycastDistance = 2.0f;
 
     [Header("Hardware Links")]
-    // --- LEVER BYPASS ---
-    // Commented out the lever reference for now
-    // public SliderThrottle throttleScript; 
-
-    // Using the Automatic Speed script as the bridge
+    // We keep this reference just in case, but we won't use it for movement
     public AutomaticThrottle throttleScript;
-
     public InputActionReference moveAction;
     public InputActionReference interactAction;
 
@@ -35,17 +35,28 @@ public class PlayerController : MonoBehaviour
     public Transform cockpitJoystickHandle;
     public float maxVisualTilt = 20f;
 
-    [Header("Diagnostics")]
-    public bool showDebugLogs = true;
+    [Header("Ballistics")]
+    public float projectileForce = 30f;
+    public float muzzleOffset = 0.5f; // NEW: Positive moves the spawn forward, negative moves it back
 
-    // --- TANGIBLE BRIDGE (WEBSOCKET DATA) ---
+    [Header("Pickup Feedback")]
+    public GameObject pickupVFX;
+    public AudioSource pickupAudioSource;
+
+    private Vector3 externalForce;
     private float extX = 0;
     private float extY = 0;
+    private bool isOnTrack = true;
+
+    public void ApplyExternalForce(Vector3 force)
+    {
+        externalForce = force;
+    }
 
     public void UpdateExternalInput(float x, float y)
     {
-        extX = x * -1f; // Inverts X to match tank steering
-        extY = y;
+        extX = x * -1f; // Steering
+        extY = y;       // THIS is now your gas pedal
     }
 
     private void OnEnable()
@@ -60,27 +71,13 @@ public class PlayerController : MonoBehaviour
         mainCamera = Camera.main;
     }
 
-    void FixedUpdate()
-    {
-        /* --- BYPASSING DIRECT LEVER MOVEMENT ---
-        // We are moving the lever logic into HandleTankMovement() 
-        // to keep everything inside the CharacterController system.
-        
-        if (throttleScript != null)
-        {
-            float finalSpeed = throttleScript.speedPercentage * maxSpeed;
-            transform.position += transform.forward * finalSpeed * Time.fixedDeltaTime;
-        }
-        */
-    }
-
     void Update()
     {
         if (characterController == null || !characterController.enabled) return;
 
         SyncCapsuleToHead();
+        CheckSurface();
 
-        // Ensure the game manager check doesn't block testing if null
         if (gameManager == null || gameManager.IsGameStarted())
         {
             HandleTankMovement();
@@ -93,44 +90,68 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    void CheckSurface()
+    {
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, out hit, raycastDistance, trackLayer))
+        {
+            isOnTrack = true;
+        }
+        else
+        {
+            isOnTrack = false;
+        }
+    }
+
     void HandleTankMovement()
     {
+        // 1. Get Input (Priority to External WebSocket input, fallback to VR controller)
         Vector2 stickInput = new Vector2(extX, extY);
 
-        // Fallback to VR Controllers if WebSocket isn't sending data
         if (stickInput.magnitude < 0.05f && moveAction != null)
         {
             stickInput = moveAction.action.ReadValue<Vector2>();
         }
 
-        // --- AUTOMATIC THROTTLE LOGIC ---
-        float throttle = 0f;
-        if (throttleScript != null)
-        {
-            throttle = throttleScript.speedPercentage;
-        }
-        else
-        {
-            // If the script is missing, we default to 0.5 so you can still move
-            throttle = 0.5f;
-        }
-
-        // Apply Rotation
+        // 2. Manual Rotation
         if (Mathf.Abs(stickInput.x) > 0.1f)
         {
             transform.Rotate(0, stickInput.x * turnSpeed * Time.deltaTime, 0);
         }
 
-        // Apply Forward Movement
-        // Note: stickInput.y handles controller forward, throttle handles the 'cruise' speed
-        float forwardInput = (Mathf.Abs(stickInput.y) > 0.1f) ? stickInput.y : 1.0f;
-        Vector3 targetMove = transform.forward * forwardInput * (maxSpeed * throttle);
+        // 3. Manual Acceleration Logic
+        // We use stickInput.y directly. Push up = Forward, Pull back = Reverse.
+        float currentMax = isOnTrack ? maxSpeed : offTrackSpeed;
 
-        currentVelocity = Vector3.MoveTowards(currentVelocity, targetMove, acceleration * Time.deltaTime);
+        // Calculate the direction we WANT to go based on the stick
+        Vector3 targetMove = transform.forward * stickInput.y * currentMax;
 
-        // Apply gravity and Move
-        Vector3 finalMove = (currentVelocity + (Vector3.up * -9.81f)) * Time.deltaTime;
+        // Determine if we are accelerating or braking to apply the right feel
+        float lerpSpeed = (Mathf.Abs(stickInput.y) > 0.05f) ? acceleration : deceleration;
+
+        // Smoothly move our current velocity toward the target stick input
+        currentVelocity = Vector3.MoveTowards(currentVelocity, targetMove, lerpSpeed * Time.deltaTime);
+
+        // 4. Final Execution
+        Vector3 finalMove = (currentVelocity + externalForce + (Vector3.up * -9.81f)) * Time.deltaTime;
         characterController.Move(finalMove);
+
+        externalForce = Vector3.zero;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Pickup"))
+        {
+            if (pickupVFX != null) Instantiate(pickupVFX, other.transform.position, Quaternion.identity);
+            if (pickupAudioSource != null) pickupAudioSource.Play();
+            Destroy(other.gameObject);
+        }
+    }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        // Wall collision logic can go here
     }
 
     void UpdateJoystickVisuals()
@@ -157,13 +178,21 @@ public class PlayerController : MonoBehaviour
     {
         if (projectileSpawnPoint == null || projectilePrefab == null) return;
 
-        GameObject proj = Instantiate(projectilePrefab, projectileSpawnPoint.position, projectileSpawnPoint.rotation);
+        Vector3 spawnPos = projectileSpawnPoint.position + (projectileSpawnPoint.forward * muzzleOffset);
+        GameObject proj = Instantiate(projectilePrefab, spawnPos, projectileSpawnPoint.rotation);
+
         Rigidbody rb = proj.GetComponent<Rigidbody>();
         if (rb != null)
         {
+            // Reset velocity
             rb.linearVelocity = Vector3.zero;
-            rb.AddForce(projectileSpawnPoint.forward * projectileForce, ForceMode.Impulse);
+
+            // NEW: Add the tank's current speed to the projectile force
+            // This ensures the bullet always moves away from you at the same relative speed
+            float speedBoost = currentVelocity.magnitude;
+            rb.AddForce(projectileSpawnPoint.forward * (projectileForce + speedBoost), ForceMode.Impulse);
         }
+
         Destroy(proj, 3f);
     }
 }
